@@ -170,8 +170,8 @@ MonoBehaviour:
   - {fileID: 8328259562235204654, guid: bdc9a7eeec6f6804fa57972a504a3b27, type: 3}
   - {fileID: 1850579990347819242, guid: d5f1a4131d51a7d44aebf7ea0729c22e, type: 3}
   - {fileID: 7382746373830832270, guid: 9f8de93e168414140923662262d80f57, type: 3}
-  rows: 4
-  columns: 5
+  rows: 10
+  columns: 12
   blockSize: 3
 --- !u!1 &519420028
 GameObject:
@@ -279,7 +279,7 @@ Camera:
   far clip plane: 1000
   field of view: 34
   orthographic: 1
-  orthographic size: 16
+  orthographic size: 15
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -304,7 +304,7 @@ Transform:
   m_GameObject: {fileID: 519420028}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 23.59, y: 13.4, z: -1}
+  m_LocalPosition: {x: 15, y: 13, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []

@@ -10,8 +10,8 @@ GameObject:
   m_Component:
   - component: {fileID: 2625559883462592877}
   - component: {fileID: 7248312162199222792}
-  - component: {fileID: 8922760410489334759}
   - component: {fileID: 5243887618515297155}
+  - component: {fileID: 8922760410489334759}
   m_Layer: 0
   m_Name: bluePrefab
   m_TagString: Untagged
@@ -78,7 +78,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: -4624011131410558117, guid: ce67863ed0d30d347bef66c5e47d2a1e, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -86,25 +86,9 @@ SpriteRenderer:
   m_Size: {x: 2.25, y: 2.56}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 0
+  m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!114 &8922760410489334759
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2619933288934370886}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 316675c2bce2bef4b8edea256c6f33ed, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  defaultSprite: {fileID: -4624011131410558117, guid: ce67863ed0d30d347bef66c5e47d2a1e, type: 3}
-  spriteA: {fileID: -8923791490832965560, guid: 81cb74ced59a7af4ba9676685377b38d, type: 3}
-  spriteB: {fileID: -812536794617419617, guid: e3b2e5ee66a1aaf48b9a0060b8758114, type: 3}
-  spriteC: {fileID: -2915790821876642617, guid: 27dd457d91d1d8146bd7a29198647a32, type: 3}
 --- !u!61 &5243887618515297155
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -151,3 +135,19 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 2, y: 2}
   m_EdgeRadius: 0
+--- !u!114 &8922760410489334759
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2619933288934370886}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 316675c2bce2bef4b8edea256c6f33ed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  defaultSprite: {fileID: -4624011131410558117, guid: ce67863ed0d30d347bef66c5e47d2a1e, type: 3}
+  spriteA: {fileID: -8923791490832965560, guid: 81cb74ced59a7af4ba9676685377b38d, type: 3}
+  spriteB: {fileID: -812536794617419617, guid: e3b2e5ee66a1aaf48b9a0060b8758114, type: 3}
+  spriteC: {fileID: -2915790821876642617, guid: 27dd457d91d1d8146bd7a29198647a32, type: 3}

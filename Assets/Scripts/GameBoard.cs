@@ -1,22 +1,32 @@
 using System.Collections;
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
 public class GameBoard : MonoBehaviour
 {
     [Header("Block Prefabs (One for Each Color)")]
     public GameObject[] blockPrefabs;
 
+    [Header("Board Dimensions")]
     public int rows = 10;
-    public int columns = 12;
+    public int columns = 10;
     public float blockSize = 1.0f;
 
     private GameObject[,] blocks;
+    private bool isReady = false;
 
     void Start()
     {
         blocks = new GameObject[rows, columns];
+        StartCoroutine(InitializeBoard());
+    }
+
+    IEnumerator InitializeBoard()
+    {
         GenerateBoard();
+        CenterGrid();
+        yield return new WaitForSeconds(0.5f);
+        isReady = true;
     }
 
     void GenerateBoard()
@@ -25,24 +35,14 @@ public class GameBoard : MonoBehaviour
         {
             for (int col = 0; col < columns; col++)
             {
-                Vector2 position = new Vector2(col * blockSize, row * blockSize);
+                Vector2 position = new Vector2(col * blockSize, (rows - 1 - row) * blockSize);
                 int colorIndex = Random.Range(0, blockPrefabs.Length);
 
                 GameObject blockPrefab = blockPrefabs[colorIndex];
-                if (blockPrefab == null)
+                if (blockPrefab != null)
                 {
-                    Debug.LogError("Block prefab is missing or not assigned.");
-                    continue;
+                    blocks[row, col] = Instantiate(blockPrefab, position, Quaternion.identity, transform);
                 }
-
-                GameObject block = Instantiate(blockPrefab, position, Quaternion.identity, transform);
-                if (block == null)
-                {
-                    Debug.LogError($"Failed to instantiate block at ({row}, {col}).");
-                    continue;
-                }
-
-                blocks[row, col] = block;
             }
         }
     }
@@ -51,11 +51,13 @@ public class GameBoard : MonoBehaviour
     {
         float offsetX = (columns - 1) * blockSize / 2;
         float offsetY = (rows - 1) * blockSize / 2;
-        transform.position = new Vector2(-offsetX, -offsetY);
+        transform.position = new Vector3(-offsetX, offsetY, 0); 
     }
 
     void Update()
     {
+        if (!isReady) return;
+
         if (Input.GetMouseButtonDown(0))
         {
             Vector2 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
@@ -63,184 +65,125 @@ public class GameBoard : MonoBehaviour
 
             if (hit.collider != null)
             {
-                GameObject clickedBlock = hit.collider.gameObject;
-                for (int row = 0; row < rows; row++)
+                DetectAndUpdateMatches(hit.collider.gameObject);
+            }
+        }
+    }
+
+    void DetectAndUpdateMatches(GameObject clickedBlock)
+    {
+        Vector2Int? blockPosition = FindBlockPosition(clickedBlock);
+        if (blockPosition.HasValue)
+        {
+            var matches = DetectMatches(blockPosition.Value);
+
+            if (matches.Count >= 2)
+            {
+                foreach (var pos in matches)
                 {
-                    for (int col = 0; col < columns; col++)
-                    {
-                        if (blocks[row, col] == clickedBlock)
-                        {
-                            DetectAndUpdateMatches(row, col);
-                            return;
-                        }
-                    }
+                    Destroy(blocks[pos.x, pos.y]);
+                    blocks[pos.x, pos.y] = null;
+                }
+
+                UpdateBoardAfterRemoval(matches);
+            }
+        }
+    }
+
+    Vector2Int? FindBlockPosition(GameObject block)
+    {
+        for (int row = 0; row < rows; row++)
+        {
+            for (int col = 0; col < columns; col++)
+            {
+                if (blocks[row, col] == block)
+                {
+                    return new Vector2Int(row, col);
                 }
             }
         }
+        return null;
     }
 
-    void DetectAndUpdateMatches(int startRow, int startCol)
+    List<Vector2Int> DetectMatches(Vector2Int start)
     {
-        var matches = DetectMatches(startRow, startCol);
-        if (matches.Count >= 2)
-        {
-            foreach (var pos in matches)
-            {
-                Destroy(blocks[pos.x, pos.y]);
-                blocks[pos.x, pos.y] = null;
-            }
+        List<Vector2Int> matches = new List<Vector2Int>();
+        if (blocks[start.x, start.y] == null) return matches;
 
-            UpdateBoardAfterRemoval(matches);
-        }
-    }
-
-    List<Vector2Int> DetectMatches(int startRow, int startCol)
-    {
-        var matches = new List<Vector2Int>();
-
-        // Validate starting block
-        if (blocks[startRow, startCol] == null)
-            return matches;
-
-        var targetBlock = blocks[startRow, startCol];
-        var blockBehavior = targetBlock.GetComponent<BlockBehavior>();
-        if (blockBehavior == null)
-        {
-            Debug.LogError($"Block at ({startRow}, {startCol}) is missing BlockBehavior.");
-            return matches;
-        }
-
-        var targetSprite = blockBehavior.GetSprite();
-        if (targetSprite == null)
-        {
-            Debug.LogError($"Block at ({startRow}, {startCol}) has no sprite set.");
-            return matches;
-        }
+        Sprite targetSprite = blocks[start.x, start.y].GetComponent<BlockBehavior>()?.GetComponent<SpriteRenderer>().sprite;
+        if (targetSprite == null) return matches;
 
         bool[,] visited = new bool[rows, columns];
 
-        void FloodFill(int row, int col)
+        void FloodFill(int x, int y)
         {
-            if (row < 0 || col < 0 || row >= rows || col >= columns || visited[row, col])
-                return;
+            if (x < 0 || y < 0 || x >= rows || y >= columns || visited[x, y] || blocks[x, y] == null) return;
 
-            GameObject block = blocks[row, col];
-            if (block == null)
-                return;
+            Sprite sprite = blocks[x, y].GetComponent<BlockBehavior>()?.GetComponent<SpriteRenderer>().sprite;
+            if (sprite != targetSprite) return;
 
-            var behavior = block.GetComponent<BlockBehavior>();
-            if (behavior == null || behavior.GetSprite() != targetSprite)
-                return;
+            visited[x, y] = true;
+            matches.Add(new Vector2Int(x, y));
 
-            visited[row, col] = true;
-            matches.Add(new Vector2Int(row, col));
-
-            FloodFill(row + 1, col);
-            FloodFill(row - 1, col);
-            FloodFill(row, col + 1);
-            FloodFill(row, col - 1);
+            FloodFill(x + 1, y);
+            FloodFill(x - 1, y);
+            FloodFill(x, y + 1);
+            FloodFill(x, y - 1);
         }
 
-        FloodFill(startRow, startCol);
+        FloodFill(start.x, start.y);
         return matches;
     }
 
     void UpdateBoardAfterRemoval(List<Vector2Int> matches)
     {
+        
         foreach (var pos in matches)
         {
-            Destroy(blocks[pos.x, pos.y]); 
-            blocks[pos.x, pos.y] = null;  
+            blocks[pos.x, pos.y] = null;
         }
         
         for (int col = 0; col < columns; col++)
         {
-            int emptyRow = rows - 1;
             for (int row = rows - 1; row >= 0; row--)
             {
-                if (blocks[row, col] != null)
+                if (blocks[row, col] == null)
                 {
-                    if (row != emptyRow)
+                    for (int aboveRow = row - 1; aboveRow >= 0; aboveRow--)
                     {
-                        blocks[emptyRow, col] = blocks[row, col];
-                        blocks[row, col] = null;
-                        blocks[emptyRow, col].transform.position = new Vector2(col * blockSize, emptyRow * blockSize);
+                        if (blocks[aboveRow, col] != null)
+                        {
+                            blocks[row, col] = blocks[aboveRow, col];
+                            blocks[aboveRow, col] = null;
+                            StartCoroutine(MoveBlockToPosition(blocks[row, col], new Vector2(col * blockSize, (rows - 1 - row) * blockSize)));
+                            break;
+                        }
                     }
-                    emptyRow--;
                 }
-            }
-            
-            for (int row = emptyRow; row >= 0; row--)
-            {
-                int colorIndex = Random.Range(0, blockPrefabs.Length);
-                GameObject blockPrefab = blockPrefabs[colorIndex];
-                Vector2 spawnPosition = new Vector2(col * blockSize, (rows + row) * blockSize); 
-                GameObject newBlock = Instantiate(blockPrefab, spawnPosition, Quaternion.identity, transform);
-
-                blocks[row, col] = newBlock;
-
-                
-                StartCoroutine(MoveBlockToPosition(newBlock, new Vector2(col * blockSize, row * blockSize)));
             }
         }
 
         
-        if (!HasAnyMatches())
+        for (int col = 0; col < columns; col++)
         {
-            ShuffleBoard();
+            for (int row = 0; row < rows; row++)
+            {
+                if (blocks[row, col] == null)
+                {
+                    int colorIndex = Random.Range(0, blockPrefabs.Length);
+                    blocks[row, col] = Instantiate(blockPrefabs[colorIndex], new Vector2(col * blockSize, (rows + row) * blockSize), Quaternion.identity, transform);
+                    StartCoroutine(MoveBlockToPosition(blocks[row, col], new Vector2(col * blockSize, (rows - 1 - row) * blockSize)));
+                }
+            }
         }
     }
-
     IEnumerator MoveBlockToPosition(GameObject block, Vector2 targetPosition)
     {
-        float speed = 25f; 
+        float speed = 10f; 
         while ((Vector2)block.transform.position != targetPosition)
         {
             block.transform.position = Vector2.MoveTowards(block.transform.position, targetPosition, speed * Time.deltaTime);
             yield return null;
-        }
-    }
-
-    bool HasAnyMatches()
-    {
-        for (int row = 0; row < rows; row++)
-        {
-            for (int col = 0; col < columns; col++)
-            {
-                if (blocks[row, col] == null) continue;
-
-                var matches = DetectMatches(row, col);
-                if (matches.Count >= 2)
-                {
-                    return true; // At least one match exists
-                }
-            }
-        }
-        return false; // No matches found
-    }
-
-
-
-    void ShuffleBoard()
-    {
-        List<GameObject> blockList = new List<GameObject>();
-        foreach (var block in blocks) if (block != null) blockList.Add(block);
-
-        for (int i = blockList.Count - 1; i > 0; i--)
-        {
-            int randomIndex = Random.Range(0, i + 1);
-            var temp = blockList[i];
-            blockList[i] = blockList[randomIndex];
-            blockList[randomIndex] = temp;
-        }
-
-        for (int row = 0; row < rows; row++)
-        {
-            for (int col = 0; col < columns; col++)
-            {
-                blocks[row, col] = blockList[row * columns + col];
-                blocks[row, col].transform.position = new Vector2(col * blockSize, row * blockSize);
-            }
         }
     }
 }

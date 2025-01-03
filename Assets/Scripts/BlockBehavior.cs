@@ -10,21 +10,19 @@ public class BlockBehavior : MonoBehaviour
     public Sprite spriteB;
     public Sprite spriteC;
 
-    void Start()
+    void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
         if (spriteRenderer == null)
         {
             Debug.LogError($"SpriteRenderer not found on block: {gameObject.name}");
         }
-        else
-        {
-            spriteRenderer.sprite = defaultSprite;
-        }
     }
 
     public void UpdateSpriteBasedOnGroupSize(int groupSize)
     {
+        if (spriteRenderer == null) return;
+
         if (groupSize >= 10)
         {
             spriteRenderer.sprite = spriteC;
@@ -41,10 +39,5 @@ public class BlockBehavior : MonoBehaviour
         {
             spriteRenderer.sprite = defaultSprite;
         }
-    }
-
-    public Sprite GetSprite()
-    {
-        return spriteRenderer.sprite;
     }
 }
