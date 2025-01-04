@@ -164,20 +164,20 @@ public class GameBoard : MonoBehaviour
         return matches;
     }
 
-    IEnumerator UpdateBoardAfterRemoval(List<Vector2Int> matches)
+ IEnumerator UpdateBoardAfterRemoval(List<Vector2Int> matches)
 {
-    yield return new WaitForSeconds(0.1f); 
+    yield return new WaitForSeconds(0.1f); // Delay for visual feedback
 
     foreach (var pos in matches)
     {
-        blocks[pos.x, pos.y] = null;
+        blocks[pos.x, pos.y] = null; // Clear matched blocks
     }
 
     for (int col = 0; col < columns; col++)
     {
-        int emptyRow = rows - 1; 
+        int emptyRow = rows - 1; // Start checking from the top
 
-      
+        // Shift existing blocks down
         for (int row = rows - 1; row >= 0; row--)
         {
             if (blocks[row, col] != null)
@@ -187,6 +187,7 @@ public class GameBoard : MonoBehaviour
                     blocks[emptyRow, col] = blocks[row, col];
                     blocks[row, col] = null;
 
+                    // Move the block to its new position
                     StartCoroutine(MoveBlockToPosition(blocks[emptyRow, col],
                         new Vector2(col * blockSize, (rows - 1 - emptyRow) * blockSize)));
                 }
@@ -195,16 +196,17 @@ public class GameBoard : MonoBehaviour
             }
         }
 
-      
+        // Spawn new blocks at the top to fill empty spaces
         for (int spawnRow = emptyRow; spawnRow >= 0; spawnRow--)
         {
             int colorIndex = Random.Range(0, blockPrefabs.Length);
-            float spawnYPosition = (rows + (emptyRow - spawnRow) + 1) * blockSize; 
 
-           
+            // Proper spawn position directly above the grid
+            Vector2 spawnPosition = new Vector2(col * blockSize, (rows + (emptyRow - spawnRow)) * blockSize);
+
             blocks[spawnRow, col] = Instantiate(
                 blockPrefabs[colorIndex],
-                new Vector2(col * blockSize, spawnYPosition),
+                spawnPosition,
                 Quaternion.identity,
                 transform
             );
@@ -215,19 +217,19 @@ public class GameBoard : MonoBehaviour
                 newBlockBehavior.UpdateSpriteBasedOnGroupSize(1);
             }
 
-            
+            // Move the new block to its correct position in the grid
             StartCoroutine(MoveBlockToPosition(blocks[spawnRow, col],
                 new Vector2(col * blockSize, (rows - 1 - spawnRow) * blockSize)));
         }
     }
 
-    yield return new WaitForSeconds(0.5f); 
-    isReady = true; 
+    yield return new WaitForSeconds(0.5f); // Allow animations to complete
+    isReady = true; // Enable player actions
 }
 
     IEnumerator MoveBlockToPosition(GameObject block, Vector2 targetPosition)
     {
-        float speed = 30f;
+        float speed = 35f;
 
         if (block == null) yield break;
 

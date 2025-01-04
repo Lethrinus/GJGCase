@@ -151,3 +151,6 @@ MonoBehaviour:
   spriteA: {fileID: 414921610477409366, guid: e3a63fb0d5ff77a429eda303d4226024, type: 3}
   spriteB: {fileID: -6038182108957047188, guid: 466562eb9c771674fbb5d44a5010db79, type: 3}
   spriteC: {fileID: -7586140276444505714, guid: cdabfbf89bb8c7f42969d0b9c3f37ffc, type: 3}
+  thresholdA: 2
+  thresholdB: 4
+  thresholdC: 6

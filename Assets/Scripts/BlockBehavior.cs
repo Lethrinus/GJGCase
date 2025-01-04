@@ -22,6 +22,10 @@ public class BlockBehavior : MonoBehaviour
         {
             Debug.LogError($"SpriteRenderer not found on block: {gameObject.name}");
         }
+        if (defaultSprite == null || spriteA == null || spriteB == null || spriteC == null)
+        {
+            Debug.LogWarning($"Some sprites are not assigned on block: {gameObject.name}");
+        }
     }
 
   

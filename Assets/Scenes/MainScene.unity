@@ -173,9 +173,9 @@ MonoBehaviour:
   rows: 10
   columns: 12
   blockSize: 3
-  thresholdA: 5
-  thresholdB: 8
-  thresholdC: 10
+  thresholdA: 2
+  thresholdB: 4
+  thresholdC: 6
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
