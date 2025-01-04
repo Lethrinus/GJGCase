@@ -10,6 +10,11 @@ public class BlockBehavior : MonoBehaviour
     public Sprite spriteB;
     public Sprite spriteC;
 
+    [Header("Thresholds")]
+    public int thresholdA = 5;
+    public int thresholdB = 8; 
+    public int thresholdC = 10; 
+
     void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
@@ -19,19 +24,20 @@ public class BlockBehavior : MonoBehaviour
         }
     }
 
+  
     public void UpdateSpriteBasedOnGroupSize(int groupSize)
     {
         if (spriteRenderer == null) return;
 
-        if (groupSize >= 10)
+        if (groupSize >= thresholdC)
         {
             spriteRenderer.sprite = spriteC;
         }
-        else if (groupSize >= 8)
+        else if (groupSize >= thresholdB)
         {
             spriteRenderer.sprite = spriteB;
         }
-        else if (groupSize >= 5)
+        else if (groupSize >= thresholdA)
         {
             spriteRenderer.sprite = spriteA;
         }

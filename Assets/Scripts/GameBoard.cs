@@ -12,6 +12,11 @@ public class GameBoard : MonoBehaviour
     public int columns = 10;
     public float blockSize = 1.0f;
 
+    [Header("Thresholds for Group Sizes")]
+    public int thresholdA = 5;  
+    public int thresholdB = 8;
+    public int thresholdC = 10;
+
     private GameObject[,] blocks;
     private bool isReady = false;
 
@@ -41,7 +46,16 @@ public class GameBoard : MonoBehaviour
                 GameObject blockPrefab = blockPrefabs[colorIndex];
                 if (blockPrefab != null)
                 {
-                    blocks[row, col] = Instantiate(blockPrefab, position, Quaternion.identity, transform);
+                    GameObject block = Instantiate(blockPrefab, position, Quaternion.identity, transform);
+                    blocks[row, col] = block;
+
+                    var blockBehavior = block.GetComponent<BlockBehavior>();
+                    if (blockBehavior != null)
+                    {
+                        blockBehavior.thresholdA = thresholdA;
+                        blockBehavior.thresholdB = thresholdB;
+                        blockBehavior.thresholdC = thresholdC;
+                    }
                 }
             }
         }
@@ -51,12 +65,12 @@ public class GameBoard : MonoBehaviour
     {
         float offsetX = (columns - 1) * blockSize / 2;
         float offsetY = (rows - 1) * blockSize / 2;
-        transform.position = new Vector3(-offsetX, offsetY, 0); 
+        transform.position = new Vector3(-offsetX, offsetY, 0);
     }
 
     void Update()
     {
-        if (!isReady) return;
+        if (!isReady) return; 
 
         if (Input.GetMouseButtonDown(0))
         {
@@ -72,6 +86,8 @@ public class GameBoard : MonoBehaviour
 
     void DetectAndUpdateMatches(GameObject clickedBlock)
     {
+        if (!isReady) return; 
+
         Vector2Int? blockPosition = FindBlockPosition(clickedBlock);
         if (blockPosition.HasValue)
         {
@@ -79,16 +95,28 @@ public class GameBoard : MonoBehaviour
 
             if (matches.Count >= 2)
             {
+                isReady = false; 
+
+                foreach (var pos in matches)
+                {
+                    var blockBehavior = blocks[pos.x, pos.y]?.GetComponent<BlockBehavior>();
+                    if (blockBehavior != null)
+                    {
+                        blockBehavior.UpdateSpriteBasedOnGroupSize(matches.Count);
+                    }
+                }
+
                 foreach (var pos in matches)
                 {
                     Destroy(blocks[pos.x, pos.y]);
                     blocks[pos.x, pos.y] = null;
                 }
 
-                UpdateBoardAfterRemoval(matches);
+                StartCoroutine(UpdateBoardAfterRemoval(matches));
             }
         }
     }
+    
 
     Vector2Int? FindBlockPosition(GameObject block)
     {
@@ -102,6 +130,7 @@ public class GameBoard : MonoBehaviour
                 }
             }
         }
+
         return null;
     }
 
@@ -110,7 +139,7 @@ public class GameBoard : MonoBehaviour
         List<Vector2Int> matches = new List<Vector2Int>();
         if (blocks[start.x, start.y] == null) return matches;
 
-        Sprite targetSprite = blocks[start.x, start.y].GetComponent<BlockBehavior>()?.GetComponent<SpriteRenderer>().sprite;
+        Sprite targetSprite = blocks[start.x, start.y].GetComponent<BlockBehavior>()?.GetComponent<SpriteRenderer>()?.sprite;
         if (targetSprite == null) return matches;
 
         bool[,] visited = new bool[rows, columns];
@@ -135,54 +164,85 @@ public class GameBoard : MonoBehaviour
         return matches;
     }
 
-    void UpdateBoardAfterRemoval(List<Vector2Int> matches)
+    IEnumerator UpdateBoardAfterRemoval(List<Vector2Int> matches)
+{
+    yield return new WaitForSeconds(0.1f); 
+
+    foreach (var pos in matches)
     {
-        
-        foreach (var pos in matches)
+        blocks[pos.x, pos.y] = null;
+    }
+
+    for (int col = 0; col < columns; col++)
+    {
+        int emptyRow = rows - 1; 
+
+      
+        for (int row = rows - 1; row >= 0; row--)
         {
-            blocks[pos.x, pos.y] = null;
-        }
-        
-        for (int col = 0; col < columns; col++)
-        {
-            for (int row = rows - 1; row >= 0; row--)
+            if (blocks[row, col] != null)
             {
-                if (blocks[row, col] == null)
+                if (row != emptyRow)
                 {
-                    for (int aboveRow = row - 1; aboveRow >= 0; aboveRow--)
-                    {
-                        if (blocks[aboveRow, col] != null)
-                        {
-                            blocks[row, col] = blocks[aboveRow, col];
-                            blocks[aboveRow, col] = null;
-                            StartCoroutine(MoveBlockToPosition(blocks[row, col], new Vector2(col * blockSize, (rows - 1 - row) * blockSize)));
-                            break;
-                        }
-                    }
+                    blocks[emptyRow, col] = blocks[row, col];
+                    blocks[row, col] = null;
+
+                    StartCoroutine(MoveBlockToPosition(blocks[emptyRow, col],
+                        new Vector2(col * blockSize, (rows - 1 - emptyRow) * blockSize)));
                 }
+
+                emptyRow--;
             }
         }
 
-        
-        for (int col = 0; col < columns; col++)
+      
+        for (int spawnRow = emptyRow; spawnRow >= 0; spawnRow--)
         {
-            for (int row = 0; row < rows; row++)
+            int colorIndex = Random.Range(0, blockPrefabs.Length);
+            float spawnYPosition = (rows + (emptyRow - spawnRow) + 1) * blockSize; 
+
+           
+            blocks[spawnRow, col] = Instantiate(
+                blockPrefabs[colorIndex],
+                new Vector2(col * blockSize, spawnYPosition),
+                Quaternion.identity,
+                transform
+            );
+
+            var newBlockBehavior = blocks[spawnRow, col].GetComponent<BlockBehavior>();
+            if (newBlockBehavior != null)
             {
-                if (blocks[row, col] == null)
-                {
-                    int colorIndex = Random.Range(0, blockPrefabs.Length);
-                    blocks[row, col] = Instantiate(blockPrefabs[colorIndex], new Vector2(col * blockSize, (rows + row) * blockSize), Quaternion.identity, transform);
-                    StartCoroutine(MoveBlockToPosition(blocks[row, col], new Vector2(col * blockSize, (rows - 1 - row) * blockSize)));
-                }
+                newBlockBehavior.UpdateSpriteBasedOnGroupSize(1);
             }
+
+            
+            StartCoroutine(MoveBlockToPosition(blocks[spawnRow, col],
+                new Vector2(col * blockSize, (rows - 1 - spawnRow) * blockSize)));
         }
     }
+
+    yield return new WaitForSeconds(0.5f); 
+    isReady = true; 
+}
+
     IEnumerator MoveBlockToPosition(GameObject block, Vector2 targetPosition)
     {
-        float speed = 10f; 
-        while ((Vector2)block.transform.position != targetPosition)
+        float speed = 30f;
+
+        if (block == null) yield break;
+
+        Vector2 start = block.transform.localPosition;
+
+        while (block != null && (Vector2)block.transform.localPosition != targetPosition)
         {
-            block.transform.position = Vector2.MoveTowards(block.transform.position, targetPosition, speed * Time.deltaTime);
+            if (block != null)
+            {
+                block.transform.localPosition = Vector2.MoveTowards(
+                    block.transform.localPosition,
+                    targetPosition,
+                    speed * Time.deltaTime
+                );
+            }
             yield return null;
         }
     }
