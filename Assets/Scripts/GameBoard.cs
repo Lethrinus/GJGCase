@@ -47,7 +47,7 @@ public class GameBoard : MonoBehaviour
     private IEnumerator InitializeBoard()
     {
         GenerateBoard();
-        CenterGrid();
+        
 
         yield return new WaitForSeconds(0.1f);
 
@@ -96,15 +96,6 @@ public class GameBoard : MonoBehaviour
         float y = (rows - 1 - row) * blockSize;
         return new Vector2(x, y);
     }
-
-  
-    private void CenterGrid()
-    {
-        float offsetX = (columns - 1) * blockSize * 0.5f;
-        float offsetY = (rows - 1) * blockSize * 0.5f;
-        transform.position = new Vector3(-offsetX, offsetY, 0f);
-    }
-
     private void Update()
     {
         if (!isReady) return;
