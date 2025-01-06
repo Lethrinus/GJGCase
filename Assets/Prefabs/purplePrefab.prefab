@@ -147,10 +147,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 316675c2bce2bef4b8edea256c6f33ed, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  colorID: 4
   defaultSprite: {fileID: 8161472552560778960, guid: 414a96a10367fa74ca4370b1597e2e71, type: 3}
   spriteA: {fileID: -6416537123964203564, guid: a7605337e89131a4caceedc0d02d249e, type: 3}
   spriteB: {fileID: -2693315669398477313, guid: f79a7224ff07bf14e82c69a4eef6d90e, type: 3}
   spriteC: {fileID: 1386842339749069192, guid: dc0a16c681e460446bb9798c62213aca, type: 3}
-  thresholdA: 2
-  thresholdB: 4
-  thresholdC: 6
+  thresholdA: 4
+  thresholdB: 6
+  thresholdC: 8

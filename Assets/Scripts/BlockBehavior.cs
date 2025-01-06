@@ -2,52 +2,46 @@ using UnityEngine;
 
 public class BlockBehavior : MonoBehaviour
 {
+    [Header("Color ID (0..K-1) for Matching")]
+    public int colorID;
+
+    [Header("Sprites by Threshold")]
+    public Sprite defaultSprite; 
+    public Sprite spriteA;        
+    public Sprite spriteB;       
+    public Sprite spriteC;      
+
+    [Header("Thresholds (A < B < C)")]
+    public int thresholdA = 4; 
+    public int thresholdB = 7; 
+    public int thresholdC = 9;
+
     private SpriteRenderer spriteRenderer;
 
-    [Header("Sprites for this block")]
-    public Sprite defaultSprite;
-    public Sprite spriteA;
-    public Sprite spriteB;
-    public Sprite spriteC;
-
-    [Header("Thresholds")]
-    public int thresholdA = 5;
-    public int thresholdB = 8; 
-    public int thresholdC = 10; 
-
-    void Awake()
+    private void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
-        if (spriteRenderer == null)
-        {
-            Debug.LogError($"SpriteRenderer not found on block: {gameObject.name}");
-        }
-        if (defaultSprite == null || spriteA == null || spriteB == null || spriteC == null)
-        {
-            Debug.LogWarning($"Some sprites are not assigned on block: {gameObject.name}");
-        }
+        if (!spriteRenderer)
+            Debug.LogError($"[BlockBehavior] Missing SpriteRenderer on {name}");
     }
-
-  
     public void UpdateSpriteBasedOnGroupSize(int groupSize)
     {
-        if (spriteRenderer == null) return;
-
-        if (groupSize >= thresholdC)
+        if (!spriteRenderer) return;
+        if (groupSize < thresholdA)
         {
-            spriteRenderer.sprite = spriteC;
+            spriteRenderer.sprite = defaultSprite;
         }
-        else if (groupSize >= thresholdB)
-        {
-            spriteRenderer.sprite = spriteB;
-        }
-        else if (groupSize >= thresholdA)
+        else if (groupSize < thresholdB)
         {
             spriteRenderer.sprite = spriteA;
         }
+        else if (groupSize < thresholdC)
+        {
+            spriteRenderer.sprite = spriteB;
+        }
         else
         {
-            spriteRenderer.sprite = defaultSprite;
+            spriteRenderer.sprite = spriteC;
         }
     }
 }
