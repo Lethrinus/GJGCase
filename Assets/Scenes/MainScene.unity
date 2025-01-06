@@ -173,9 +173,10 @@ MonoBehaviour:
   rows: 10
   columns: 12
   blockSize: 3
-  thresholdA: 2
-  thresholdB: 4
-  thresholdC: 6
+  thresholdA: 4
+  thresholdB: 7
+  thresholdC: 9
+  moveSpeed: 40
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
