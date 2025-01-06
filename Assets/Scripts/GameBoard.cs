@@ -6,57 +6,58 @@ using UnityEngine;
 /// A collapse/blast board with:
 ///  - colorID-based matching
 ///  - threshold-based icons
-///  - robust deadlock detection (single-swap + limited shuffle)
-///  - correct spawning above each column
-///  - high-speed safe block movement
-/// 
-/// Notes on optimization:
-///  - We keep BFS checks minimal (only when needed).
-///  - We lock input while blocks animate.
-///  - We do immediate sprite refresh if single-swap is valid, so icons remain consistent.
+///  - single-swap deadlock fix + random shuffle
+///  - blocks remain at transform.position= (0,0,0)
+///  - buzz animation for non-blastable
+///  - blast animation + waiting logic so empty spaces fill immediately
+///  - high-speed safe movement
 /// </summary>
 public class GameBoard : MonoBehaviour
 {
-    [Header("Block Prefabs (up to K=6)")]
+    [Header("Block Prefabs (each with unique colorID)")]
     public GameObject[] blockPrefabs;
 
-    [Header("Board Dimensions (M,N up to 10)")]
+    [Header("Board Dimensions")]
     public int rows = 10;
-    public int columns = 12;
+    public int columns = 10;
     public float blockSize = 1f;
 
     [Header("Thresholds (A < B < C)")]
-    public int thresholdA = 4; 
-    public int thresholdB = 7; 
-    public int thresholdC = 9; 
+    public int thresholdA = 4;
+    public int thresholdB = 7;
+    public int thresholdC = 9;
 
     [Header("Movement Speed")]
-    public float moveSpeed = 40f; 
-    
+    public float moveSpeed = 40f;
+
+  
     private GameObject[,] blocks;
-    
+
+   
     private bool isReady = false;
+
+  
+    private int _blocksAnimating = 0;
 
     private void Start()
     {
+      
         blocks = new GameObject[rows, columns];
         StartCoroutine(InitializeBoard());
     }
 
-    
+   
     private IEnumerator InitializeBoard()
     {
         GenerateBoard();
-        
 
+       
         yield return new WaitForSeconds(0.1f);
 
         UpdateAllBlockSprites();
 
-        
         if (CheckForDeadlock())
         {
-            Debug.Log("[GameBoard] Deadlock at start, attempting to resolve...");
             ResolveDeadlock();
             yield return new WaitForSeconds(0.3f);
             UpdateAllBlockSprites();
@@ -66,7 +67,7 @@ public class GameBoard : MonoBehaviour
         isReady = true;
     }
 
- 
+   
     private void GenerateBoard()
     {
         for (int r = 0; r < rows; r++)
@@ -74,11 +75,12 @@ public class GameBoard : MonoBehaviour
             for (int c = 0; c < columns; c++)
             {
                 int idx = Random.Range(0, blockPrefabs.Length);
-                Vector2 position = GetBlockPosition(r, c);
+                Vector2 spawnPos = GetBlockPosition(r, c);
 
-                GameObject block = Instantiate(blockPrefabs[idx], position, Quaternion.identity, transform);
+                GameObject block = Instantiate(blockPrefabs[idx], spawnPos, Quaternion.identity, transform);
                 blocks[r, c] = block;
 
+               
                 var bb = block.GetComponent<BlockBehavior>();
                 if (bb != null)
                 {
@@ -96,11 +98,12 @@ public class GameBoard : MonoBehaviour
         float y = (rows - 1 - row) * blockSize;
         return new Vector2(x, y);
     }
+
     private void Update()
     {
         if (!isReady) return;
 
-        
+        // Left-click
         if (Input.GetMouseButtonDown(0))
         {
             Vector2 mp = Camera.main.ScreenToWorldPoint(Input.mousePosition);
@@ -113,7 +116,7 @@ public class GameBoard : MonoBehaviour
         }
     }
 
-  
+   
     private void TryBlast(GameObject clickedBlock)
     {
         if (!isReady) return;
@@ -121,27 +124,25 @@ public class GameBoard : MonoBehaviour
         Vector2Int? pos = FindBlockPosition(clickedBlock);
         if (!pos.HasValue) return;
 
-      
         List<Vector2Int> group = GetConnectedGroup(pos.Value);
-        if (group.Count < 2) return; 
-
-      
-        isReady = false;
-
-    
-        foreach (var p in group)
+        if (group.Count < 2)
         {
-            if (blocks[p.x, p.y] != null)
+            
+            var bb = clickedBlock.GetComponent<BlockBehavior>();
+            if (bb != null)
             {
-                Destroy(blocks[p.x, p.y]);
-                blocks[p.x, p.y] = null;
+                
+                bb.StartBuzz();
             }
+            return;
         }
 
-       
-        StartCoroutine(UpdateBoardAfterRemoval());
+        
+        isReady = false;
+        StartCoroutine(RemoveGroupWithAnimation(group));
     }
 
+    
     private Vector2Int? FindBlockPosition(GameObject block)
     {
         for (int r = 0; r < rows; r++)
@@ -153,6 +154,43 @@ public class GameBoard : MonoBehaviour
             }
         }
         return null;
+    }
+
+    
+    private IEnumerator RemoveGroupWithAnimation(List<Vector2Int> group)
+    {
+       
+        foreach (var p in group)
+        {
+            if (blocks[p.x, p.y] != null)
+            {
+                _blocksAnimating++;
+                var bb = blocks[p.x, p.y].GetComponent<BlockBehavior>();
+                if (bb != null)
+                {
+                   
+                    StartCoroutine(bb.BlastAnimation(0.3f, onComplete: () =>
+                    {
+                        _blocksAnimating--;
+                    }));
+                }
+            }
+        }
+
+        
+        foreach (var p in group)
+        {
+            blocks[p.x, p.y] = null;
+        }
+
+        
+        while (_blocksAnimating > 0)
+            yield return null;
+
+     
+        yield return StartCoroutine(UpdateBoardAfterRemoval());
+
+        isReady = true;
     }
 
     
@@ -170,20 +208,15 @@ public class GameBoard : MonoBehaviour
         while (stack.Count > 0)
         {
             Vector2Int current = stack.Pop();
-            int rr = current.x;
-            int cc = current.y;
-
-            if (visited[rr, cc]) continue;
-            visited[rr, cc] = true;
+            if (visited[current.x, current.y]) continue;
+            visited[current.x, current.y] = true;
             result.Add(current);
 
             foreach (var nbr in GetNeighbors(current))
             {
-                int nr = nbr.x;
-                int nc = nbr.y;
-                if (!visited[nr, nc] && blocks[nr, nc] != null)
+                if (!visited[nbr.x, nbr.y] && blocks[nbr.x, nbr.y] != null)
                 {
-                    var nb = blocks[nr, nc].GetComponent<BlockBehavior>();
+                    var nb = blocks[nbr.x, nbr.y].GetComponent<BlockBehavior>();
                     if (nb != null && nb.colorID == colorID)
                     {
                         stack.Push(nbr);
@@ -191,14 +224,13 @@ public class GameBoard : MonoBehaviour
                 }
             }
         }
-
         return result;
     }
 
-   
     private IEnumerable<Vector2Int> GetNeighbors(Vector2Int cell)
     {
-        int r = cell.x, c = cell.y;
+        int r = cell.x;
+        int c = cell.y;
 
         if (r - 1 >= 0)     yield return new Vector2Int(r - 1, c);
         if (r + 1 < rows)   yield return new Vector2Int(r + 1, c);
@@ -206,15 +238,14 @@ public class GameBoard : MonoBehaviour
         if (c + 1 < columns)yield return new Vector2Int(r, c + 1);
     }
 
- 
+
     private IEnumerator UpdateBoardAfterRemoval()
     {
         yield return new WaitForSeconds(0.1f);
 
-        
         for (int c = 0; c < columns; c++)
         {
-            int writeRow = rows - 1; 
+            int writeRow = rows - 1;
             for (int r = rows - 1; r >= 0; r--)
             {
                 if (blocks[r, c] != null)
@@ -224,7 +255,7 @@ public class GameBoard : MonoBehaviour
                         blocks[writeRow, c] = blocks[r, c];
                         blocks[r, c] = null;
 
-                  
+                       
                         Vector2 targetPos = GetBlockPosition(writeRow, c);
                         StartCoroutine(MoveBlock(blocks[writeRow, c], targetPos));
                     }
@@ -232,12 +263,12 @@ public class GameBoard : MonoBehaviour
                 }
             }
 
-            
             for (int newRow = writeRow; newRow >= 0; newRow--)
             {
                 int idx = Random.Range(0, blockPrefabs.Length);
-                
+               
                 Vector2 spawnPos = GetBlockPosition(-1, c);
+
                 GameObject newBlock = Instantiate(blockPrefabs[idx], spawnPos, Quaternion.identity, transform);
                 blocks[newRow, c] = newBlock;
 
@@ -249,7 +280,7 @@ public class GameBoard : MonoBehaviour
                     bb.thresholdC = thresholdC;
                 }
 
-               
+              
                 Vector2 finalPos = GetBlockPosition(newRow, c);
                 StartCoroutine(MoveBlock(newBlock, finalPos));
             }
@@ -257,10 +288,10 @@ public class GameBoard : MonoBehaviour
 
         yield return new WaitForSeconds(0.5f);
 
-      
+    
         UpdateAllBlockSprites();
 
-     
+      
         if (CheckForDeadlock())
         {
             Debug.Log("[GameBoard] Deadlock after removal, resolving...");
@@ -268,22 +299,18 @@ public class GameBoard : MonoBehaviour
             yield return new WaitForSeconds(0.3f);
             UpdateAllBlockSprites();
         }
-
-     
-        isReady = true;
     }
 
     
     private IEnumerator MoveBlock(GameObject block, Vector2 targetPos)
     {
-        if (block == null) yield break;
+        if (!block) yield break;
 
-        while (block != null)
+        while (block)
         {
             Vector2 current = block.transform.localPosition;
             if ((current - targetPos).sqrMagnitude < 0.0001f)
             {
-             
                 block.transform.localPosition = targetPos;
                 yield break;
             }
@@ -293,26 +320,22 @@ public class GameBoard : MonoBehaviour
                 targetPos,
                 moveSpeed * Time.deltaTime
             );
-
             yield return null;
         }
     }
 
+  
     private void UpdateAllBlockSprites()
     {
         bool[,] visited = new bool[rows, columns];
-
         for (int r = 0; r < rows; r++)
         {
             for (int c = 0; c < columns; c++)
             {
-                if (blocks[r, c] == null || visited[r, c]) 
-                    continue;
+                if (blocks[r, c] == null || visited[r, c]) continue;
 
                 List<Vector2Int> group = GetConnectedGroup(new Vector2Int(r, c));
                 int size = group.Count;
-
-                
                 foreach (var p in group)
                 {
                     visited[p.x, p.y] = true;
@@ -324,47 +347,40 @@ public class GameBoard : MonoBehaviour
     }
 
     // ------------------------------------------------------------------
-    //                         DEADLOCK DETECTION
+    //                      DEADLOCK DETECTION
     // ------------------------------------------------------------------
 
-   
     private bool CheckForDeadlock()
     {
         bool[,] visited = new bool[rows, columns];
-
         for (int r = 0; r < rows; r++)
         {
             for (int c = 0; c < columns; c++)
             {
-                if (blocks[r, c] == null || visited[r, c]) 
-                    continue;
+                if (blocks[r, c] == null || visited[r, c]) continue;
 
                 var group = GetConnectedGroup(new Vector2Int(r, c));
-                
                 foreach (var p in group)
                     visited[p.x, p.y] = true;
 
-                if (group.Count >= 2)
-                    return false; 
+                if (group.Count >= 2) return false;
             }
         }
         return true;
     }
 
-    
     private void ResolveDeadlock()
     {
         isReady = false;
 
-       
         if (TrySingleSwapToCreateMatch())
         {
-           
             UpdateAllBlockSprites();
             Debug.Log("[GameBoard] Deadlock resolved by single-swap.");
             return;
         }
 
+       
         int attempts = 0;
         while (attempts < 10)
         {
@@ -377,11 +393,10 @@ public class GameBoard : MonoBehaviour
             }
             attempts++;
         }
-
         Debug.LogWarning("[GameBoard] Could not resolve deadlock after multiple shuffles!");
     }
 
-  
+   
     private bool TrySingleSwapToCreateMatch()
     {
         for (int r1 = 0; r1 < rows; r1++)
@@ -396,28 +411,26 @@ public class GameBoard : MonoBehaviour
                 {
                     for (int c2 = 0; c2 < columns; c2++)
                     {
-                        
                         if (r1 == r2 && c1 == c2) continue;
                         if (blocks[r2, c2] == null) continue;
 
                         var bb2 = blocks[r2, c2].GetComponent<BlockBehavior>();
                         if (bb2 == null) continue;
                         
-                        int temp = bb1.colorID;
+                        int tmp = bb1.colorID;
                         bb1.colorID = bb2.colorID;
-                        bb2.colorID = temp;
+                        bb2.colorID = tmp;
 
-                      
+                     
                         if (FormsARealMatch(r1, c1) || FormsARealMatch(r2, c2))
                         {
-                          
                             return true;
                         }
 
-                        
-                        temp = bb1.colorID;
+                    
+                        tmp = bb1.colorID;
                         bb1.colorID = bb2.colorID;
-                        bb2.colorID = temp;
+                        bb2.colorID = tmp;
                     }
                 }
             }
@@ -425,7 +438,7 @@ public class GameBoard : MonoBehaviour
         return false;
     }
 
-  
+    
     private bool FormsARealMatch(int r, int c)
     {
         if (blocks[r, c] == null) return false;
@@ -438,26 +451,23 @@ public class GameBoard : MonoBehaviour
         Stack<Vector2Int> stack = new Stack<Vector2Int>();
         stack.Push(new Vector2Int(r, c));
 
-        int groupCount = 0;
+        int count = 0;
 
         while (stack.Count > 0)
         {
-            Vector2Int current = stack.Pop();
+            var current = stack.Pop();
             int rr = current.x;
             int cc = current.y;
-
             if (visited[rr, cc]) continue;
             visited[rr, cc] = true;
-            groupCount++;
+            count++;
 
             foreach (var nbr in GetNeighbors(current))
             {
-                int nr = nbr.x;
-                int nc = nbr.y;
-                if (!visited[nr, nc] && blocks[nr, nc] != null)
+                if (!visited[nbr.x, nbr.y] && blocks[nbr.x, nbr.y] != null)
                 {
-                    var neighborBB = blocks[nr, nc].GetComponent<BlockBehavior>();
-                    if (neighborBB != null && neighborBB.colorID == targetColor)
+                    var nbb = blocks[nbr.x, nbr.y].GetComponent<BlockBehavior>();
+                    if (nbb != null && nbb.colorID == targetColor)
                     {
                         stack.Push(nbr);
                     }
@@ -465,13 +475,12 @@ public class GameBoard : MonoBehaviour
             }
         }
 
-        return (groupCount >= 2);
+        return (count >= 2);
     }
 
    
     private void RandomShuffle()
     {
-        
         List<int> colorList = new List<int>();
         for (int r = 0; r < rows; r++)
         {
@@ -480,12 +489,13 @@ public class GameBoard : MonoBehaviour
                 if (blocks[r, c] != null)
                 {
                     var bb = blocks[r, c].GetComponent<BlockBehavior>();
-                    if (bb != null) colorList.Add(bb.colorID);
+                    if (bb != null)
+                        colorList.Add(bb.colorID);
                 }
             }
         }
 
-       
+        
         for (int i = colorList.Count - 1; i > 0; i--)
         {
             int j = Random.Range(0, i + 1);
@@ -494,7 +504,7 @@ public class GameBoard : MonoBehaviour
             colorList[j] = temp;
         }
 
-        
+       
         int index = 0;
         for (int r = 0; r < rows; r++)
         {
