@@ -7,11 +7,13 @@ using System.Collections;
 ///  - Sprites for different thresholds (default, A, B, C)
 ///  - A "buzz" animation if not blastable
 ///  - A "blast" animation if it's being removed
+///  - Hover highlight on mouse over
 /// </summary>
+[RequireComponent(typeof(SpriteRenderer))]
 public class BlockBehavior : MonoBehaviour
 {
     [Header("Color ID (0..K-1) for Matching")]
-    public int colorID;  
+    public int colorID;
 
     [Header("Sprites by Threshold")]
     public Sprite defaultSprite; 
@@ -24,14 +26,10 @@ public class BlockBehavior : MonoBehaviour
     public int thresholdB = 7;
     public int thresholdC = 9;
 
-
     private SpriteRenderer spriteRenderer;
-
-   
     private Vector3 originalScale;
     private Vector3 originalRotation;
 
-   
     private Coroutine currentBuzzRoutine;
 
     private void Awake()
@@ -40,12 +38,23 @@ public class BlockBehavior : MonoBehaviour
         if (!spriteRenderer)
             Debug.LogError($"[BlockBehavior] Missing SpriteRenderer on {name}");
 
-     
         originalScale = transform.localScale;
         originalRotation = transform.localEulerAngles;
     }
 
-  
+    // ------------------ Hover Highlight ------------------
+    private void OnMouseEnter()
+    {
+        transform.localScale = originalScale * 1.1f;
+    }
+
+    private void OnMouseExit()
+    {
+       
+        transform.localScale = originalScale;
+    }
+    // -----------------------------------------------------
+
     public void UpdateSpriteBasedOnGroupSize(int groupSize)
     {
         if (!spriteRenderer) return;
@@ -68,7 +77,6 @@ public class BlockBehavior : MonoBehaviour
         }
     }
 
-    
     public void StartBuzz(
         float duration = 0.3f, 
         float scaleAmplitude = 0.05f, 
@@ -87,7 +95,6 @@ public class BlockBehavior : MonoBehaviour
         );
     }
 
- 
     private IEnumerator BuzzScaleRotate(
         float duration, 
         float scaleAmplitude, 
@@ -100,10 +107,11 @@ public class BlockBehavior : MonoBehaviour
         {
             float sinVal = Mathf.Sin(elapsed * frequency);
 
-            
+        
             float sOffset = sinVal * scaleAmplitude;
             transform.localScale = originalScale + new Vector3(sOffset, sOffset, 0f);
 
+          
             float rOffset = sinVal * rotateAmplitude;
             transform.localEulerAngles = new Vector3(
                 originalRotation.x,
@@ -115,11 +123,10 @@ public class BlockBehavior : MonoBehaviour
             yield return null;
         }
 
-        
+       
         transform.localScale = originalScale;
         transform.localEulerAngles = originalRotation;
 
-      
         currentBuzzRoutine = null;
     }
 
@@ -141,11 +148,10 @@ public class BlockBehavior : MonoBehaviour
         {
             float t = elapsed / duration;
 
-           
             float scaleFactor = Mathf.Lerp(1f, 1.5f, t);
             transform.localScale = initialScale * scaleFactor;
 
-          
+           
             float alpha = Mathf.Lerp(1f, 0f, t);
             sr.color = new Color(initialColor.r, initialColor.g, initialColor.b, alpha);
 
@@ -153,7 +159,7 @@ public class BlockBehavior : MonoBehaviour
             yield return null;
         }
 
-      
+        // Final state
         transform.localScale = initialScale * 1.5f;
         sr.color = new Color(initialColor.r, initialColor.g, initialColor.b, 0f);
 

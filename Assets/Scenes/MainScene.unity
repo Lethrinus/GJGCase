@@ -170,6 +170,8 @@ MonoBehaviour:
   - {fileID: 8328259562235204654, guid: bdc9a7eeec6f6804fa57972a504a3b27, type: 3}
   - {fileID: 1850579990347819242, guid: d5f1a4131d51a7d44aebf7ea0729c22e, type: 3}
   - {fileID: 7382746373830832270, guid: 9f8de93e168414140923662262d80f57, type: 3}
+  blastParticlePrefab: {fileID: 2760962825039910227, guid: 49365b637aeb951488eb23b7558fd503, type: 3}
+  buzzParticlePrefab: {fileID: 2760962825039910227, guid: b7691ee967a72f640832dfcff5f52b47, type: 3}
   rows: 10
   columns: 12
   blockSize: 3
@@ -177,6 +179,9 @@ MonoBehaviour:
   thresholdB: 7
   thresholdC: 9
   moveSpeed: 25
+  backgroundColorA: {r: 0.1, g: 0.2, b: 0.8, a: 1}
+  backgroundColorB: {r: 0.3, g: 0.4, b: 0.95, a: 1}
+  backgroundLerpTime: 10
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0

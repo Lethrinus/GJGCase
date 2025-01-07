@@ -11,11 +11,18 @@ using UnityEngine;
 ///  - buzz animation for non-blastable
 ///  - blast animation + waiting logic so empty spaces fill immediately
 ///  - high-speed safe movement
+///  - camera shake on large blast
+///  - particle effects for blast & buzz
+///  - background color lerp
 /// </summary>
 public class GameBoard : MonoBehaviour
 {
     [Header("Block Prefabs (each with unique colorID)")]
     public GameObject[] blockPrefabs;
+
+    [Header("Particle Prefabs")]
+    public GameObject blastParticlePrefab; 
+    public GameObject buzzParticlePrefab;  
 
     [Header("Board Dimensions")]
     public int rows = 10;
@@ -30,28 +37,27 @@ public class GameBoard : MonoBehaviour
     [Header("Movement Speed")]
     public float moveSpeed = 40f;
 
-  
+    [Header("Background Lerp Settings")]
+    public Color backgroundColorA = new Color(0.1f, 0.2f, 0.8f);
+    public Color backgroundColorB = new Color(0.3f, 0.4f, 0.95f);
+    public float backgroundLerpTime = 10f;
+
+    private float lerpT = 0f;
+    private bool lerpForward = true;
+
     private GameObject[,] blocks;
-
-   
     private bool isReady = false;
-
-  
     private int _blocksAnimating = 0;
 
     private void Start()
     {
-      
         blocks = new GameObject[rows, columns];
         StartCoroutine(InitializeBoard());
     }
 
-   
     private IEnumerator InitializeBoard()
     {
         GenerateBoard();
-
-       
         yield return new WaitForSeconds(0.1f);
 
         UpdateAllBlockSprites();
@@ -67,7 +73,47 @@ public class GameBoard : MonoBehaviour
         isReady = true;
     }
 
-   
+    private void Update()
+    {
+        if (!isReady) return;
+
+        
+        if (Input.GetMouseButtonDown(0))
+        {
+            Vector2 mp = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            RaycastHit2D hit = Physics2D.Raycast(mp, Vector2.zero);
+
+            if (hit.collider != null)
+            {
+                TryBlast(hit.collider.gameObject);
+            }
+        }
+
+       
+        LerpBackgroundColor();
+    }
+
+    private void LerpBackgroundColor()
+    {
+        if (!Camera.main) return;
+        
+        float direction = lerpForward ? 1f : -1f;
+        lerpT += direction * (Time.deltaTime / backgroundLerpTime);
+
+        if (lerpT >= 1f)
+        {
+            lerpT = 1f;
+            lerpForward = false;
+        }
+        else if (lerpT <= 0f)
+        {
+            lerpT = 0f;
+            lerpForward = true;
+        }
+
+        Camera.main.backgroundColor = Color.Lerp(backgroundColorA, backgroundColorB, lerpT);
+    }
+
     private void GenerateBoard()
     {
         for (int r = 0; r < rows; r++)
@@ -80,7 +126,6 @@ public class GameBoard : MonoBehaviour
                 GameObject block = Instantiate(blockPrefabs[idx], spawnPos, Quaternion.identity, transform);
                 blocks[r, c] = block;
 
-               
                 var bb = block.GetComponent<BlockBehavior>();
                 if (bb != null)
                 {
@@ -99,24 +144,6 @@ public class GameBoard : MonoBehaviour
         return new Vector2(x, y);
     }
 
-    private void Update()
-    {
-        if (!isReady) return;
-
-        // Left-click
-        if (Input.GetMouseButtonDown(0))
-        {
-            Vector2 mp = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            RaycastHit2D hit = Physics2D.Raycast(mp, Vector2.zero);
-
-            if (hit.collider != null)
-            {
-                TryBlast(hit.collider.gameObject);
-            }
-        }
-    }
-
-   
     private void TryBlast(GameObject clickedBlock)
     {
         if (!isReady) return;
@@ -131,18 +158,36 @@ public class GameBoard : MonoBehaviour
             var bb = clickedBlock.GetComponent<BlockBehavior>();
             if (bb != null)
             {
-                
                 bb.StartBuzz();
             }
+
+          
+            SpawnParticleAndDestroy(buzzParticlePrefab, clickedBlock.transform.position);
             return;
         }
-
         
         isReady = false;
         StartCoroutine(RemoveGroupWithAnimation(group));
     }
 
-    
+    private void SpawnParticleAndDestroy(GameObject particlePrefab, Vector3 position)
+    {
+        if (particlePrefab == null) return;
+
+        GameObject p = Instantiate(particlePrefab, position, Quaternion.identity);
+        ParticleSystem ps = p.GetComponent<ParticleSystem>();
+        if (ps != null)
+        {
+            float totalDuration = ps.main.duration + ps.main.startLifetime.constantMax;
+            Destroy(p, totalDuration);
+        }
+        else
+        {
+            
+            Destroy(p, 2f);
+        }
+    }
+
     private Vector2Int? FindBlockPosition(GameObject block)
     {
         for (int r = 0; r < rows; r++)
@@ -156,10 +201,17 @@ public class GameBoard : MonoBehaviour
         return null;
     }
 
-    
     private IEnumerator RemoveGroupWithAnimation(List<Vector2Int> group)
     {
+        int groupSize = group.Count;
+
        
+        if (groupSize >= 5)
+        {
+            StartCoroutine(CameraShake(0.15f, 1f));
+        }
+
+        
         foreach (var p in group)
         {
             if (blocks[p.x, p.y] != null)
@@ -168,16 +220,18 @@ public class GameBoard : MonoBehaviour
                 var bb = blocks[p.x, p.y].GetComponent<BlockBehavior>();
                 if (bb != null)
                 {
-                   
                     StartCoroutine(bb.BlastAnimation(0.3f, onComplete: () =>
                     {
                         _blocksAnimating--;
                     }));
                 }
+
+                
+                SpawnParticleAndDestroy(blastParticlePrefab, blocks[p.x, p.y].transform.position);
             }
         }
 
-        
+      
         foreach (var p in group)
         {
             blocks[p.x, p.y] = null;
@@ -186,14 +240,11 @@ public class GameBoard : MonoBehaviour
         
         while (_blocksAnimating > 0)
             yield return null;
-
-     
         yield return StartCoroutine(UpdateBoardAfterRemoval());
 
         isReady = true;
     }
 
-    
     private List<Vector2Int> GetConnectedGroup(Vector2Int start)
     {
         List<Vector2Int> result = new List<Vector2Int>();
@@ -232,12 +283,11 @@ public class GameBoard : MonoBehaviour
         int r = cell.x;
         int c = cell.y;
 
-        if (r - 1 >= 0)     yield return new Vector2Int(r - 1, c);
-        if (r + 1 < rows)   yield return new Vector2Int(r + 1, c);
-        if (c - 1 >= 0)     yield return new Vector2Int(r, c - 1);
-        if (c + 1 < columns)yield return new Vector2Int(r, c + 1);
+        if (r - 1 >= 0) yield return new Vector2Int(r - 1, c);
+        if (r + 1 < rows) yield return new Vector2Int(r + 1, c);
+        if (c - 1 >= 0) yield return new Vector2Int(r, c - 1);
+        if (c + 1 < columns) yield return new Vector2Int(r, c + 1);
     }
-
 
     private IEnumerator UpdateBoardAfterRemoval()
     {
@@ -255,7 +305,6 @@ public class GameBoard : MonoBehaviour
                         blocks[writeRow, c] = blocks[r, c];
                         blocks[r, c] = null;
 
-                       
                         Vector2 targetPos = GetBlockPosition(writeRow, c);
                         StartCoroutine(MoveBlock(blocks[writeRow, c], targetPos));
                     }
@@ -263,10 +312,10 @@ public class GameBoard : MonoBehaviour
                 }
             }
 
+           
             for (int newRow = writeRow; newRow >= 0; newRow--)
             {
                 int idx = Random.Range(0, blockPrefabs.Length);
-               
                 Vector2 spawnPos = GetBlockPosition(-1, c);
 
                 GameObject newBlock = Instantiate(blockPrefabs[idx], spawnPos, Quaternion.identity, transform);
@@ -280,7 +329,6 @@ public class GameBoard : MonoBehaviour
                     bb.thresholdC = thresholdC;
                 }
 
-              
                 Vector2 finalPos = GetBlockPosition(newRow, c);
                 StartCoroutine(MoveBlock(newBlock, finalPos));
             }
@@ -288,10 +336,8 @@ public class GameBoard : MonoBehaviour
 
         yield return new WaitForSeconds(0.5f);
 
-    
         UpdateAllBlockSprites();
 
-      
         if (CheckForDeadlock())
         {
             Debug.Log("[GameBoard] Deadlock after removal, resolving...");
@@ -301,7 +347,6 @@ public class GameBoard : MonoBehaviour
         }
     }
 
-    
     private IEnumerator MoveBlock(GameObject block, Vector2 targetPos)
     {
         if (!block) yield break;
@@ -324,7 +369,6 @@ public class GameBoard : MonoBehaviour
         }
     }
 
-  
     private void UpdateAllBlockSprites()
     {
         bool[,] visited = new bool[rows, columns];
@@ -345,10 +389,6 @@ public class GameBoard : MonoBehaviour
             }
         }
     }
-
-    // ------------------------------------------------------------------
-    //                      DEADLOCK DETECTION
-    // ------------------------------------------------------------------
 
     private bool CheckForDeadlock()
     {
@@ -380,7 +420,6 @@ public class GameBoard : MonoBehaviour
             return;
         }
 
-       
         int attempts = 0;
         while (attempts < 10)
         {
@@ -396,7 +435,6 @@ public class GameBoard : MonoBehaviour
         Debug.LogWarning("[GameBoard] Could not resolve deadlock after multiple shuffles!");
     }
 
-   
     private bool TrySingleSwapToCreateMatch()
     {
         for (int r1 = 0; r1 < rows; r1++)
@@ -416,18 +454,17 @@ public class GameBoard : MonoBehaviour
 
                         var bb2 = blocks[r2, c2].GetComponent<BlockBehavior>();
                         if (bb2 == null) continue;
-                        
+
                         int tmp = bb1.colorID;
                         bb1.colorID = bb2.colorID;
                         bb2.colorID = tmp;
 
-                     
                         if (FormsARealMatch(r1, c1) || FormsARealMatch(r2, c2))
                         {
                             return true;
                         }
 
-                    
+                        // swap back
                         tmp = bb1.colorID;
                         bb1.colorID = bb2.colorID;
                         bb2.colorID = tmp;
@@ -438,7 +475,6 @@ public class GameBoard : MonoBehaviour
         return false;
     }
 
-    
     private bool FormsARealMatch(int r, int c)
     {
         if (blocks[r, c] == null) return false;
@@ -478,7 +514,6 @@ public class GameBoard : MonoBehaviour
         return (count >= 2);
     }
 
-   
     private void RandomShuffle()
     {
         List<int> colorList = new List<int>();
@@ -495,7 +530,6 @@ public class GameBoard : MonoBehaviour
             }
         }
 
-        
         for (int i = colorList.Count - 1; i > 0; i--)
         {
             int j = Random.Range(0, i + 1);
@@ -504,7 +538,6 @@ public class GameBoard : MonoBehaviour
             colorList[j] = temp;
         }
 
-       
         int index = 0;
         for (int r = 0; r < rows; r++)
         {
@@ -521,5 +554,29 @@ public class GameBoard : MonoBehaviour
                 }
             }
         }
+    }
+
+    // --------------------------- CAMERA SHAKE ---------------------------
+    private IEnumerator CameraShake(float duration, float magnitude)
+    {
+        if (!Camera.main) yield break;
+
+        Vector3 originalPos = Camera.main.transform.position;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            float offsetX = Random.Range(-1f, 1f) * magnitude;
+            float offsetY = Random.Range(-1f, 1f) * magnitude;
+            Camera.main.transform.position = new Vector3(
+                originalPos.x + offsetX,
+                originalPos.y + offsetY,
+                originalPos.z
+            );
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        // Reset
+        Camera.main.transform.position = originalPos;
     }
 }
