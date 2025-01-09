@@ -19,10 +19,7 @@ public class GameBoard : MonoBehaviour
 {
     [Header("Block Prefabs (each with unique colorID)")]
     public GameObject[] blockPrefabs;
-
-    [Header("Particle Prefabs")]
-    public GameObject blastParticlePrefab; 
-    public GameObject buzzParticlePrefab;  
+    
 
     [Header("Board Dimensions")]
     public int rows = 10;
@@ -160,9 +157,6 @@ public class GameBoard : MonoBehaviour
             {
                 bb.StartBuzz();
             }
-
-          
-            SpawnParticleAndDestroy(buzzParticlePrefab, clickedBlock.transform.position);
             return;
         }
         
@@ -225,9 +219,6 @@ public class GameBoard : MonoBehaviour
                         _blocksAnimating--;
                     }));
                 }
-
-                
-                SpawnParticleAndDestroy(blastParticlePrefab, blocks[p.x, p.y].transform.position);
             }
         }
 
