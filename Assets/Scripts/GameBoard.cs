@@ -200,9 +200,9 @@ public class GameBoard : MonoBehaviour
         int groupSize = group.Count;
 
        
-        if (groupSize >= 5)
+        if (groupSize >= 7)
         {
-            StartCoroutine(CameraShake(0.15f, 1f));
+            StartCoroutine(CameraShake(0.36f, 0.24f));
         }
 
         
