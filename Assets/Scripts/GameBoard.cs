@@ -25,10 +25,10 @@ public class GameBoard : MonoBehaviour
     public Color backgroundColorB = new Color(0.3f, 0.4f, 0.95f);
     public float backgroundLerpTime = 10f;
 
-    private GameObject[] _blocks; 
-    private bool _isReady = false;
-    private int _blocksAnimating = 0;
-    private float _lerpT = 0f;
+    private GameObject[] _blocks;
+    private bool _isReady;
+    private int _blocksAnimating;
+    private float _lerpT;
     private bool _lerpForward = true;
 
     private void Start()
@@ -41,16 +41,7 @@ public class GameBoard : MonoBehaviour
     {
         GenerateBoard();
         yield return new WaitForSeconds(0.1f);
-
         UpdateAllBlockSprites();
-
-        if (CheckForDeadlock())
-        {
-            ResolveDeadlock();
-            yield return new WaitForSeconds(0.3f);
-            UpdateAllBlockSprites();
-        }
-
         yield return new WaitForSeconds(0.2f);
         _isReady = true;
     }
@@ -61,13 +52,16 @@ public class GameBoard : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
-           Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-                 RaycastHit2D hit = Physics2D.Raycast(mousePos, Vector2.zero);
+            if (Camera.main is not null)
+            {
+                Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                RaycastHit2D hit = Physics2D.Raycast(mousePos, Vector2.zero);
 
-               if (hit.collider != null)
-               {
-                  TryBlast(hit.collider.gameObject);
-               }
+                if (hit.collider is not null)
+                {
+                    TryBlast(hit.collider.gameObject);
+                }
+            }
         }
         LerpBackgroundColor();
     }
@@ -85,7 +79,7 @@ public class GameBoard : MonoBehaviour
                 _blocks[GetIndex(r, c)] = block;
 
                 var bb = block.GetComponent<BlockBehavior>();
-                if (bb != null)
+                if (bb is not null)
                 {
                     bb.thresholdA = thresholdA;
                     bb.thresholdB = thresholdB;
@@ -118,7 +112,7 @@ public class GameBoard : MonoBehaviour
         if (group.Count < 2)
         {
             var bb = clickedBlock.GetComponent<BlockBehavior>();
-            if (bb != null)
+            if (bb is not null)
             {
                 bb.StartBuzz();
             }
@@ -153,11 +147,11 @@ public class GameBoard : MonoBehaviour
 
         foreach (var index in group)
         {
-            if (_blocks[index] != null)
+            if (_blocks[index] is not null)
             {
                 _blocksAnimating++;
                 var bb = _blocks[index].GetComponent<BlockBehavior>();
-                if (bb != null)
+                if (bb is not null)
                 {
                     StartCoroutine(bb.BlastAnimation(0.3f, onComplete: () =>
                     {
@@ -189,7 +183,7 @@ public class GameBoard : MonoBehaviour
             for (int r = rows - 1; r >= 0; r--)
             {
                 int index = GetIndex(r, c);
-                if (_blocks[index] != null)
+                if (_blocks[index] is not null)
                 {
                     if (r != writeRow)
                     {
@@ -212,7 +206,7 @@ public class GameBoard : MonoBehaviour
                 _blocks[GetIndex(newRow, c)] = newBlock;
 
                 var bb = newBlock.GetComponent<BlockBehavior>();
-                if (bb != null)
+                if (bb is not null)
                 {
                     bb.thresholdA = thresholdA;
                     bb.thresholdB = thresholdB;
@@ -227,13 +221,7 @@ public class GameBoard : MonoBehaviour
         yield return new WaitForSeconds(0.5f);
 
         UpdateAllBlockSprites();
-
-        if (CheckForDeadlock())
-        {
-            ResolveDeadlock();
-            yield return new WaitForSeconds(0.3f);
-            UpdateAllBlockSprites();
-        }
+        
     }
 
     private IEnumerator MoveBlock(GameObject block, Vector2 targetPos)
@@ -296,10 +284,10 @@ public class GameBoard : MonoBehaviour
 
             foreach (int neighbor in GetNeighbors(current))
             {
-                if (!visited[neighbor] && _blocks[neighbor] != null)
+                if (!visited[neighbor] && _blocks[neighbor] is not null)
                 {
                     var nb = _blocks[neighbor].GetComponent<BlockBehavior>();
-                    if (nb != null && nb.colorID == colorID)
+                    if (nb is not null && nb.colorID == colorID)
                     {
                         stack.Push(neighbor);
                     }
@@ -319,107 +307,7 @@ public class GameBoard : MonoBehaviour
         if (c - 1 >= 0) yield return GetIndex(r, c - 1);
         if (c + 1 < columns) yield return GetIndex(r, c + 1);
     }
-
-    private bool CheckForDeadlock()
-    {
-        bool[] visited = new bool[_blocks.Length];
-        for (int i = 0; i < _blocks.Length; i++)
-        {
-            if (_blocks[i] == null || visited[i]) continue;
-
-            List<int> group = GetConnectedGroup(i);
-            foreach (int index in group)
-                visited[index] = true;
-
-            if (group.Count >= 2) return false;
-        }
-        return true;
-    }
-
-    private void ResolveDeadlock()
-    {
-        if (TrySingleSwapToCreateMatch())
-        {
-            UpdateAllBlockSprites();
-            return;
-        }
-
-        RandomShuffle();
-    }
-
-    private bool TrySingleSwapToCreateMatch()
-    {
-        for (int i1 = 0; i1 < _blocks.Length; i1++)
-        {
-            if (_blocks[i1] == null) continue;
-
-            for (int i2 = i1 + 1; i2 < _blocks.Length; i2++)
-            {
-                if (_blocks[i2] == null) continue;
-
-                var bb1 = _blocks[i1].GetComponent<BlockBehavior>();
-                var bb2 = _blocks[i2].GetComponent<BlockBehavior>();
-                if (bb1 == null || bb2 == null) continue;
-
-                int temp = bb1.colorID;
-                bb1.colorID = bb2.colorID;
-                bb2.colorID = temp;
-
-                if (FormsARealMatch(i1) || FormsARealMatch(i2))
-                {
-                    return true;
-                }
-
-                bb1.colorID = temp;
-                bb2.colorID = bb1.colorID;
-            }
-        }
-        return false;
-    }
-
-    private bool FormsARealMatch(int index)
-    {
-        if (_blocks[index] == null) return false;
-
-        List<int> group = GetConnectedGroup(index);
-        return group.Count >= 2;
-    }
-
-    private void RandomShuffle()
-    {
-        List<int> colorList = new List<int>();
-        for (int i = 0; i < _blocks.Length; i++)
-        {
-            if (_blocks[i] == null) continue;
-
-            var bb = _blocks[i].GetComponent<BlockBehavior>();
-            if (bb != null)
-            {
-                colorList.Add(bb.colorID);
-            }
-        }
-
-        for (int i = colorList.Count - 1; i > 0; i--)
-        {
-            int j = Random.Range(0, i + 1);
-            int temp = colorList[i];
-            colorList[i] = colorList[j];
-            colorList[j] = temp;
-        }
-
-        int index = 0;
-        for (int i = 0; i < _blocks.Length; i++)
-        {
-            if (_blocks[i] == null) continue;
-
-            var bb = _blocks[i].GetComponent<BlockBehavior>();
-            if (bb != null)
-            {
-                bb.colorID = colorList[index];
-                index++;
-            }
-        }
-    }
+    
 
     private void LerpBackgroundColor()
     {
