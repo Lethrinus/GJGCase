@@ -170,15 +170,15 @@ MonoBehaviour:
   - {fileID: 8328259562235204654, guid: bdc9a7eeec6f6804fa57972a504a3b27, type: 3}
   - {fileID: 1850579990347819242, guid: d5f1a4131d51a7d44aebf7ea0729c22e, type: 3}
   - {fileID: 7382746373830832270, guid: 9f8de93e168414140923662262d80f57, type: 3}
-  rows: 10
-  columns: 12
+  rows: 5
+  columns: 6
   blockSize: 3
   thresholdA: 4
   thresholdB: 7
   thresholdC: 9
   moveSpeed: 40
-  backgroundColorA: {r: 0.1, g: 0.2, b: 0.8, a: 1}
-  backgroundColorB: {r: 0.3, g: 0.4, b: 0.95, a: 1}
+  backgroundColorA: {r: 0.7075472, g: 0.377136, b: 0.50819194, a: 1}
+  backgroundColorB: {r: 0.7264151, g: 0.69595206, b: 0.6476059, a: 1}
   backgroundLerpTime: 10
 --- !u!1 &519420028
 GameObject:
