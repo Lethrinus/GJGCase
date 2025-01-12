@@ -4,8 +4,9 @@ using UnityEngine;
 
 public class GameBoard : MonoBehaviour
 {
-    [Header("Block Prefabs (each with unique colorID)")]
-    public GameObject[] blockPrefabs;
+    [Header("Block Prefabs (each has unique colorID)")]
+    public GameObject[] blockPrefabs; 
+    // prefab id matching here 
 
     [Header("Board Dimensions")]
     public int rows = 10;
@@ -25,10 +26,13 @@ public class GameBoard : MonoBehaviour
     public Color backgroundColorB = new Color(0.3f, 0.4f, 0.95f);
     public float backgroundLerpTime = 10f;
 
-    private GameObject[] _blocks; 
-    private bool _isReady = false;
-    private int _blocksAnimating = 0;
-    private float _lerpT = 0f;
+    [Header("Fade Animation")]
+    public float shuffleFadeDuration = 0.4f; 
+
+    private GameObject[] _blocks;
+    private bool _isReady;
+    private int _blocksAnimating; 
+    private float _lerpT;
     private bool _lerpForward = true;
 
     private void Start()
@@ -39,19 +43,20 @@ public class GameBoard : MonoBehaviour
 
     private IEnumerator InitializeBoard()
     {
+        // 1) random board generator 
         GenerateBoard();
         yield return new WaitForSeconds(0.1f);
 
+        // 2) sprite update with bfs 
         UpdateAllBlockSprites();
+        yield return new WaitForSeconds(0.2f);
 
-        if (CheckForDeadlock())
+        // 3) deadlock detection first when the game starts 
+        if (IsDeadlock())
         {
-            ResolveDeadlock();
-            yield return new WaitForSeconds(0.3f);
-            UpdateAllBlockSprites();
+            yield return StartCoroutine(ResolveDeadlockOnce());
         }
 
-        yield return new WaitForSeconds(0.2f);
         _isReady = true;
     }
 
@@ -59,18 +64,27 @@ public class GameBoard : MonoBehaviour
     {
         if (!_isReady) return;
 
+        // left click block blast
         if (Input.GetMouseButtonDown(0))
         {
-           Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-                 RaycastHit2D hit = Physics2D.Raycast(mousePos, Vector2.zero);
+            if (Camera.main is not null)
+            {
+                Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                RaycastHit2D hit = Physics2D.Raycast(mousePos, Vector2.zero);
 
-               if (hit.collider != null)
-               {
-                  TryBlast(hit.collider.gameObject);
-               }
+                if (hit.collider is not null)
+                {
+                    TryBlast(hit.collider.gameObject);
+                }
+            }
         }
+
         LerpBackgroundColor();
     }
+
+    
+    // board creating 
+    
 
     private void GenerateBoard()
     {
@@ -85,7 +99,7 @@ public class GameBoard : MonoBehaviour
                 _blocks[GetIndex(r, c)] = block;
 
                 var bb = block.GetComponent<BlockBehavior>();
-                if (bb != null)
+                if (bb is not null)
                 {
                     bb.thresholdA = thresholdA;
                     bb.thresholdB = thresholdB;
@@ -98,7 +112,7 @@ public class GameBoard : MonoBehaviour
     private Vector2 GetBlockPosition(int row, int col)
     {
         float x = col * blockSize;
-        float y = (rows - 1 - row) * blockSize;
+        float y = (rows - 1 - row) * blockSize; 
         return new Vector2(x, y);
     }
 
@@ -106,7 +120,9 @@ public class GameBoard : MonoBehaviour
     {
         return row * columns + col;
     }
-
+    
+    // blast mechanic 
+    
     private void TryBlast(GameObject clickedBlock)
     {
         if (!_isReady) return;
@@ -117,8 +133,9 @@ public class GameBoard : MonoBehaviour
         List<int> group = GetConnectedGroup(GetIndex(pos.Value.x, pos.Value.y));
         if (group.Count < 2)
         {
+            // cannot be blasted = buzz effect 
             var bb = clickedBlock.GetComponent<BlockBehavior>();
-            if (bb != null)
+            if (bb is not null)
             {
                 bb.StartBuzz();
             }
@@ -146,20 +163,22 @@ public class GameBoard : MonoBehaviour
     {
         int groupSize = group.Count;
 
+        // for bigger groups camera shake effect 
         if (groupSize >= 7)
         {
             StartCoroutine(CameraShake(0.36f, 0.24f));
         }
 
+        // blast animation 
         foreach (var index in group)
         {
-            if (_blocks[index] != null)
+            if (_blocks[index] is not null)
             {
                 _blocksAnimating++;
                 var bb = _blocks[index].GetComponent<BlockBehavior>();
-                if (bb != null)
+                if (bb is not null)
                 {
-                    StartCoroutine(bb.BlastAnimation(0.3f, onComplete: () =>
+                    StartCoroutine(bb.BlastAnimation(0.3f, () =>
                     {
                         _blocksAnimating--;
                     }));
@@ -167,15 +186,19 @@ public class GameBoard : MonoBehaviour
             }
         }
 
+        // array references update 
         foreach (var index in group)
         {
             _blocks[index] = null;
         }
 
+        // wait for the animations are done 
         while (_blocksAnimating > 0)
             yield return null;
 
+        // fill the spaces with new blocks 
         yield return StartCoroutine(UpdateBoardAfterRemoval());
+
         _isReady = true;
     }
 
@@ -183,13 +206,14 @@ public class GameBoard : MonoBehaviour
     {
         yield return new WaitForSeconds(0.1f);
 
+        // 1) fall the blocks 
         for (int c = 0; c < columns; c++)
         {
             int writeRow = rows - 1;
             for (int r = rows - 1; r >= 0; r--)
             {
                 int index = GetIndex(r, c);
-                if (_blocks[index] != null)
+                if (_blocks[index] is not null)
                 {
                     if (r != writeRow)
                     {
@@ -203,16 +227,16 @@ public class GameBoard : MonoBehaviour
                 }
             }
 
+            // 2) fill the spaces with new blocks  (row=-1 location spawn)
             for (int newRow = writeRow; newRow >= 0; newRow--)
             {
                 int idx = Random.Range(0, blockPrefabs.Length);
-                Vector2 spawnPos = GetBlockPosition(-1, c);
-
+                Vector2 spawnPos = GetBlockPosition(-1, c); 
                 GameObject newBlock = Instantiate(blockPrefabs[idx], spawnPos, Quaternion.identity, transform);
                 _blocks[GetIndex(newRow, c)] = newBlock;
 
                 var bb = newBlock.GetComponent<BlockBehavior>();
-                if (bb != null)
+                if (bb is not null)
                 {
                     bb.thresholdA = thresholdA;
                     bb.thresholdB = thresholdB;
@@ -226,13 +250,14 @@ public class GameBoard : MonoBehaviour
 
         yield return new WaitForSeconds(0.5f);
 
+        // bfs -> update sprite 
         UpdateAllBlockSprites();
 
-        if (CheckForDeadlock())
+        // deadlock control
+        if (IsDeadlock())
         {
-            ResolveDeadlock();
-            yield return new WaitForSeconds(0.3f);
-            UpdateAllBlockSprites();
+            // resolving deadlock with one shuffle 
+            yield return StartCoroutine(ResolveDeadlockOnce());
         }
     }
 
@@ -258,6 +283,10 @@ public class GameBoard : MonoBehaviour
         }
     }
 
+   
+    // bfs & sprite updater 
+    
+
     private void UpdateAllBlockSprites()
     {
         bool[] visited = new bool[_blocks.Length];
@@ -282,7 +311,6 @@ public class GameBoard : MonoBehaviour
         if (_blocks[start] == null) return result;
 
         int colorID = _blocks[start].GetComponent<BlockBehavior>().colorID;
-
         bool[] visited = new bool[_blocks.Length];
         Stack<int> stack = new Stack<int>();
         stack.Push(start);
@@ -296,10 +324,10 @@ public class GameBoard : MonoBehaviour
 
             foreach (int neighbor in GetNeighbors(current))
             {
-                if (!visited[neighbor] && _blocks[neighbor] != null)
+                if (!visited[neighbor] && _blocks[neighbor] is not null)
                 {
                     var nb = _blocks[neighbor].GetComponent<BlockBehavior>();
-                    if (nb != null && nb.colorID == colorID)
+                    if (nb is not null && nb.colorID == colorID)
                     {
                         stack.Push(neighbor);
                     }
@@ -311,8 +339,8 @@ public class GameBoard : MonoBehaviour
 
     private IEnumerable<int> GetNeighbors(int index)
     {
-        Vector2Int cell = new Vector2Int(index / columns, index % columns);
-        int r = cell.x, c = cell.y;
+        int r = index / columns;
+        int c = index % columns;
 
         if (r - 1 >= 0) yield return GetIndex(r - 1, c);
         if (r + 1 < rows) yield return GetIndex(r + 1, c);
@@ -320,111 +348,244 @@ public class GameBoard : MonoBehaviour
         if (c + 1 < columns) yield return GetIndex(r, c + 1);
     }
 
-    private bool CheckForDeadlock()
+    
+    // deadlock detection
+    
+
+    private bool IsDeadlock()
     {
         bool[] visited = new bool[_blocks.Length];
         for (int i = 0; i < _blocks.Length; i++)
         {
             if (_blocks[i] == null || visited[i]) continue;
 
-            List<int> group = GetConnectedGroup(i);
-            foreach (int index in group)
-                visited[index] = true;
+            List<int> group = new List<int>();
+            int colorID = _blocks[i].GetComponent<BlockBehavior>().colorID;
 
-            if (group.Count >= 2) return false;
-        }
-        return true;
-    }
+            Stack<int> stack = new Stack<int>();
+            stack.Push(i);
 
-    private void ResolveDeadlock()
-    {
-        if (TrySingleSwapToCreateMatch())
-        {
-            UpdateAllBlockSprites();
-            return;
-        }
-
-        RandomShuffle();
-    }
-
-    private bool TrySingleSwapToCreateMatch()
-    {
-        for (int i1 = 0; i1 < _blocks.Length; i1++)
-        {
-            if (_blocks[i1] == null) continue;
-
-            for (int i2 = i1 + 1; i2 < _blocks.Length; i2++)
+            while (stack.Count > 0)
             {
-                if (_blocks[i2] == null) continue;
+                int current = stack.Pop();
+                if (visited[current]) continue;
+                visited[current] = true;
+                group.Add(current);
 
-                var bb1 = _blocks[i1].GetComponent<BlockBehavior>();
-                var bb2 = _blocks[i2].GetComponent<BlockBehavior>();
-                if (bb1 == null || bb2 == null) continue;
-
-                int temp = bb1.colorID;
-                bb1.colorID = bb2.colorID;
-                bb2.colorID = temp;
-
-                if (FormsARealMatch(i1) || FormsARealMatch(i2))
+                foreach (int neighbor in GetNeighbors(current))
                 {
-                    return true;
+                    if (!visited[neighbor] && _blocks[neighbor] is not null)
+                    {
+                        var nb = _blocks[neighbor].GetComponent<BlockBehavior>();
+                        if (nb is not null && nb.colorID == colorID)
+                        {
+                            stack.Push(neighbor);
+                        }
+                    }
                 }
+            }
 
-                bb1.colorID = temp;
-                bb2.colorID = bb1.colorID;
+            if (group.Count >= 2)
+            {
+                // if there is a group of 2 then there is no deadlock
+                return false;
             }
         }
-        return false;
+        return true; 
     }
 
-    private bool FormsARealMatch(int index)
+   
+    private IEnumerator ResolveDeadlockOnce()
     {
-        if (_blocks[index] == null) return false;
+        // Fade Out
+        yield return StartCoroutine(FadeBlocksOut(shuffleFadeDuration));
 
-        List<int> group = GetConnectedGroup(index);
-        return group.Count >= 2;
+        // 1- collect the all colorID's
+        List<int> allColorIDs = new List<int>(_blocks.Length);
+        foreach (var t in _blocks)
+        {
+            allColorIDs.Add(t is not null
+                ? t.GetComponent<BlockBehavior>().colorID
+                // if null then random 
+                : Random.Range(0, blockPrefabs.Length));
+        }
+
+        // 2) find at least 2 block for one color 
+        Dictionary<int,int> colorCount = new Dictionary<int,int>();
+        foreach (var cID in allColorIDs)
+        {
+            colorCount.TryAdd(cID, 0);
+            colorCount[cID]++;
+        }
+        int colorWith2 = -1;
+        foreach (var kvp in colorCount)
+        {
+            if (kvp.Value >= 2)
+            {
+                colorWith2 = kvp.Key;
+                break;
+            }
+        }
+
+        // 3) Fisher-Yates shuffle (one-time)
+        for (int i = allColorIDs.Count - 1; i > 0; i--)
+        {
+            int swapIndex = Random.Range(0, i + 1);
+            (allColorIDs[i], allColorIDs[swapIndex]) = (allColorIDs[swapIndex], allColorIDs[i]);
+        }
+
+        // 4) for guarantee at least 1 match  
+        //   if  colorWith2 is not -1 then, index0 and index1 color change 
+        if (colorWith2 is not -1)
+        {
+            // index0
+            allColorIDs[0] = colorWith2;
+            // index1
+            allColorIDs[1] = colorWith2;
+        }
+        else
+        {
+            // if there is no color at least 2 of each 
+            // fallback:
+            
+            if (allColorIDs.Count >= 2)
+            {
+                allColorIDs[0] = 0; 
+                allColorIDs[1] = 0;
+            }
+        }
+
+        // one time board reassign
+        for (int i = 0; i < _blocks.Length; i++)
+        {
+            if (_blocks[i] is not null)
+            {
+                Destroy(_blocks[i]);
+                _blocks[i] = null;
+            }
+        }
+
+        // create array again
+        _blocks = new GameObject[rows * columns];
+
+        for (int i = 0; i < allColorIDs.Count; i++)
+        {
+            int row = i / columns;
+            int col = i % columns;
+
+            int colorID = allColorIDs[i];
+            if (colorID < 0 || colorID >= blockPrefabs.Length)
+            {
+                // clamp
+                colorID = Mathf.Clamp(colorID, 0, blockPrefabs.Length - 1);
+            }
+
+            Vector2 pos = GetBlockPosition(row, col);
+            GameObject newBlock = Instantiate(blockPrefabs[colorID], pos, Quaternion.identity, transform);
+            _blocks[i] = newBlock;
+
+            var bb = newBlock.GetComponent<BlockBehavior>();
+            if (bb is not null)
+            {
+                bb.thresholdA = thresholdA;
+                bb.thresholdB = thresholdB;
+                bb.thresholdC = thresholdC;
+            }
+        }
+
+        // 6) BFS -> sprite update
+        UpdateAllBlockSprites();
+
+        // 7) Fade In
+        yield return StartCoroutine(FadeBlocksIn(shuffleFadeDuration));
     }
 
-    private void RandomShuffle()
+    
+    // Fade Effect Camera
+    
+
+    private IEnumerator FadeBlocksOut(float duration)
     {
-        List<int> colorList = new List<int>();
-        for (int i = 0; i < _blocks.Length; i++)
-        {
-            if (_blocks[i] == null) continue;
+        float elapsed = 0f;
+        List<SpriteRenderer> srs = new List<SpriteRenderer>();
+        Dictionary<SpriteRenderer, Color> initColors = new Dictionary<SpriteRenderer, Color>();
 
-            var bb = _blocks[i].GetComponent<BlockBehavior>();
-            if (bb != null)
+        foreach (var t in _blocks)
+        {
+            if (t == null) continue;
+            SpriteRenderer sr = t.GetComponent<SpriteRenderer>();
+            if (sr)
             {
-                colorList.Add(bb.colorID);
+                srs.Add(sr);
+                initColors[sr] = sr.color;
             }
         }
 
-        for (int i = colorList.Count - 1; i > 0; i--)
+        while (elapsed < duration)
         {
-            int j = Random.Range(0, i + 1);
-            int temp = colorList[i];
-            colorList[i] = colorList[j];
-            colorList[j] = temp;
+            float t = elapsed / duration;
+            float alpha = Mathf.Lerp(1f, 0f, t);
+            foreach (var sr in srs)
+            {
+                Color c = initColors[sr];
+                sr.color = new Color(c.r, c.g, c.b, alpha);
+            }
+            elapsed += Time.deltaTime;
+            yield return null;
         }
 
-        int index = 0;
-        for (int i = 0; i < _blocks.Length; i++)
+        // final alpha = 0
+        foreach (var sr in srs)
         {
-            if (_blocks[i] == null) continue;
+            sr.color = new Color(sr.color.r, sr.color.g, sr.color.b, 0f);
+        }
+    }
 
-            var bb = _blocks[i].GetComponent<BlockBehavior>();
-            if (bb != null)
+    private IEnumerator FadeBlocksIn(float duration)
+    {
+        float elapsed = 0f;
+        List<SpriteRenderer> srs = new List<SpriteRenderer>();
+        Dictionary<SpriteRenderer, Color> targetColors = new Dictionary<SpriteRenderer, Color>();
+
+        foreach (var t in _blocks)
+        {
+            if (t == null) continue;
+            SpriteRenderer sr = t.GetComponent<SpriteRenderer>();
+            if (sr)
             {
-                bb.colorID = colorList[index];
-                index++;
+                srs.Add(sr);
+                // target alpha = 1
+                targetColors[sr] = new Color(sr.color.r, sr.color.g, sr.color.b, 1f);
+                // start alpha = 0
+                sr.color = new Color(sr.color.r, sr.color.g, sr.color.b, 0f);
             }
+        }
+
+        while (elapsed < duration)
+        {
+            float t = elapsed / duration;
+            float alpha = Mathf.Lerp(0f, 1f, t);
+            foreach (var sr in srs)
+            {
+                Color final = targetColors[sr];
+                sr.color = new Color(final.r, final.g, final.b, alpha);
+            }
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        // final alpha=1
+        foreach (var sr in srs)
+        {
+            Color final = targetColors[sr];
+            sr.color = final;
         }
     }
 
     private void LerpBackgroundColor()
     {
         if (!Camera.main) return;
-
+        
         float direction = _lerpForward ? 1f : -1f;
         _lerpT += direction * (Time.deltaTime / backgroundLerpTime);
 

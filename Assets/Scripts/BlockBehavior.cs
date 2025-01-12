@@ -1,14 +1,6 @@
 using UnityEngine;
 using System.Collections;
 
-/// <summary>
-/// Each block has:
-///  - A colorID (0..K-1) for matching
-///  - Sprites for different thresholds (default, A, B, C)
-///  - A "buzz" animation if not blastable
-///  - A "blast" animation if it's being removed
-///  - Hover highlight on mouse over
-/// </summary>
 [RequireComponent(typeof(SpriteRenderer))]
 public class BlockBehavior : MonoBehaviour
 {
@@ -26,71 +18,69 @@ public class BlockBehavior : MonoBehaviour
     public int thresholdB = 7;
     public int thresholdC = 9;
 
-    private SpriteRenderer spriteRenderer;
-    private Vector3 originalScale;
-    private Vector3 originalRotation;
-
-    private Coroutine currentBuzzRoutine;
+    private SpriteRenderer _spriteRenderer;
+    private Vector3 _originalScale;
+    private Vector3 _originalRotation;
+    private Coroutine _currentBuzzRoutine;
 
     private void Awake()
     {
-        spriteRenderer = GetComponent<SpriteRenderer>();
-        if (!spriteRenderer)
-            Debug.LogError($"[BlockBehavior] Missing SpriteRenderer on {name}");
+        _spriteRenderer = GetComponent<SpriteRenderer>();
+        if (!_spriteRenderer)
+            Debug.LogError("[BlockBehavior] Missing SpriteRenderer!");
 
-        originalScale = transform.localScale;
-        originalRotation = transform.localEulerAngles;
+        _originalScale = transform.localScale;
+        _originalRotation = transform.localEulerAngles;
     }
 
-    // ------------------ Hover Highlight ------------------
+    // hover effect 
     private void OnMouseEnter()
     {
-        transform.localScale = originalScale * 1.1f;
+        transform.localScale = _originalScale * 1.1f;
     }
-
     private void OnMouseExit()
     {
-       
-        transform.localScale = originalScale;
+        transform.localScale = _originalScale;
     }
-    // -----------------------------------------------------
 
     public void UpdateSpriteBasedOnGroupSize(int groupSize)
     {
-        if (!spriteRenderer) return;
+        if (!_spriteRenderer) return;
 
         if (groupSize < thresholdA)
         {
-            spriteRenderer.sprite = defaultSprite;
+            _spriteRenderer.sprite = defaultSprite;
         }
         else if (groupSize < thresholdB)
         {
-            spriteRenderer.sprite = spriteA;
+            _spriteRenderer.sprite = spriteA;
         }
         else if (groupSize < thresholdC)
         {
-            spriteRenderer.sprite = spriteB;
+            _spriteRenderer.sprite = spriteB;
         }
         else
         {
-            spriteRenderer.sprite = spriteC;
+            _spriteRenderer.sprite = spriteC;
         }
     }
 
+    //  buzz ( If cannot be blasted -> the buzz effect)
     public void StartBuzz(
         float duration = 0.3f, 
         float scaleAmplitude = 0.05f, 
         float rotateAmplitude = 10f, 
-        float frequency = 25f)
+        float frequency = 25f
+    )
     {
-        if (currentBuzzRoutine != null)
+        if (_currentBuzzRoutine != null)
         {
-            StopCoroutine(currentBuzzRoutine);
-            transform.localScale = originalScale;
-            transform.localEulerAngles = originalRotation;
+            StopCoroutine(_currentBuzzRoutine);
+            transform.localScale = _originalScale;
+            transform.localEulerAngles = _originalRotation;
         }
 
-        currentBuzzRoutine = StartCoroutine(
+        _currentBuzzRoutine = StartCoroutine(
             BuzzScaleRotate(duration, scaleAmplitude, rotateAmplitude, frequency)
         );
     }
@@ -99,7 +89,8 @@ public class BlockBehavior : MonoBehaviour
         float duration, 
         float scaleAmplitude, 
         float rotateAmplitude, 
-        float frequency)
+        float frequency
+    )
     {
         float elapsed = 0f;
 
@@ -107,29 +98,27 @@ public class BlockBehavior : MonoBehaviour
         {
             float sinVal = Mathf.Sin(elapsed * frequency);
 
-        
             float sOffset = sinVal * scaleAmplitude;
-            transform.localScale = originalScale + new Vector3(sOffset, sOffset, 0f);
+            transform.localScale = _originalScale + new Vector3(sOffset, sOffset, 0f);
 
-          
             float rOffset = sinVal * rotateAmplitude;
             transform.localEulerAngles = new Vector3(
-                originalRotation.x,
-                originalRotation.y,
-                originalRotation.z + rOffset
+                _originalRotation.x,
+                _originalRotation.y,
+                _originalRotation.z + rOffset
             );
 
             elapsed += Time.deltaTime;
             yield return null;
         }
 
-       
-        transform.localScale = originalScale;
-        transform.localEulerAngles = originalRotation;
-
-        currentBuzzRoutine = null;
+        // reset
+        transform.localScale = _originalScale;
+        transform.localEulerAngles = _originalRotation;
+        _currentBuzzRoutine = null;
     }
 
+    // blast animation
     public IEnumerator BlastAnimation(float duration, System.Action onComplete = null)
     {
         SpriteRenderer sr = GetComponent<SpriteRenderer>();
@@ -140,28 +129,29 @@ public class BlockBehavior : MonoBehaviour
             yield break;
         }
 
-        Vector3 initialScale = transform.localScale;
-        Color initialColor = sr.color;
+        Vector3 initScale = transform.localScale;
+        Color initColor = sr.color;
 
         float elapsed = 0f;
         while (elapsed < duration)
         {
             float t = elapsed / duration;
 
+            // scale a little bit   
             float scaleFactor = Mathf.Lerp(1f, 1.5f, t);
-            transform.localScale = initialScale * scaleFactor;
+            transform.localScale = initScale * scaleFactor;
 
-           
+            // drag the alpha to 0 
             float alpha = Mathf.Lerp(1f, 0f, t);
-            sr.color = new Color(initialColor.r, initialColor.g, initialColor.b, alpha);
+            sr.color = new Color(initColor.r, initColor.g, initColor.b, alpha);
 
             elapsed += Time.deltaTime;
             yield return null;
         }
 
-        // Final state
-        transform.localScale = initialScale * 1.5f;
-        sr.color = new Color(initialColor.r, initialColor.g, initialColor.b, 0f);
+        // final
+        transform.localScale = initScale * 1.5f;
+        sr.color = new Color(initColor.r, initColor.g, initColor.b, 0f);
 
         Destroy(gameObject);
         onComplete?.Invoke();
