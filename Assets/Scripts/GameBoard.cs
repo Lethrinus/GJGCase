@@ -5,8 +5,6 @@ using UnityEngine;
 public class GameBoard : MonoBehaviour
 {
     public BlockPool blockPool;
-    public int rows = 10;
-    public int columns = 12;
     public float blockSize = 1f;
     public int thresholdA = 4;
     public int thresholdB = 7;
@@ -22,12 +20,16 @@ public class GameBoard : MonoBehaviour
     private int _blocksAnimating;
     private float _lerpT;
     private bool _lerpForward = true;
-
+    private int rows;
+    private int columns;
     private List<int> group = new List<int>();
     private Stack<int> stack = new Stack<int>();
 
     private void Start()
     {
+        rows = BoardSettings.Rows;
+        columns = BoardSettings.Columns;
+
         if (blockPool == null)
         {
             Debug.LogError("GameBoard: BlockPool not assigned!");
@@ -48,9 +50,12 @@ public class GameBoard : MonoBehaviour
     {
         GenerateBoard();
         yield return new WaitForSeconds(0.1f);
+        
+        CenterCamera();
+        
         UpdateAllBlockSprites();
         yield return new WaitForSeconds(0.2f);
-
+    
         if (IsDeadlock())
             yield return StartCoroutine(ResolveDeadlockOnce());
 
@@ -90,6 +95,55 @@ public class GameBoard : MonoBehaviour
                 }
             }
         }
+    }
+    private void CenterCamera()
+    {
+       
+        Camera cam = Camera.main;
+        if (cam == null)
+        {
+            Debug.LogWarning("GameBoard: No Main Camera found to center.");
+            return;
+        }
+        
+        float boardWidth = (columns - 1) * blockSize;
+        float boardHeight = (rows - 1) * blockSize;
+
+        
+        float centerX = boardWidth * 0.5f;
+        float centerY = boardHeight * 0.5f;
+
+        
+        cam.transform.position = new Vector3(centerX, centerY, cam.transform.position.z);
+
+       
+        float halfBoardWidth = boardWidth * 0.5f;
+        float halfBoardHeight = boardHeight * 0.5f;
+
+       
+        float aspectRatio = Screen.width / (float)Screen.height;
+
+       
+        float halfCameraHeight;
+        float halfCameraWidth;
+
+        
+        if (halfBoardWidth / aspectRatio > halfBoardHeight)
+        {
+           
+            halfCameraWidth = halfBoardWidth;      
+            halfCameraHeight = halfCameraWidth / aspectRatio; 
+        }
+        else
+        {
+         
+            halfCameraHeight = halfBoardHeight; 
+            halfCameraWidth = halfCameraHeight * aspectRatio;
+        }
+        
+        cam.orthographicSize = halfCameraHeight;
+        float margin = 5f;
+        cam.orthographicSize += margin;
     }
 
     private Vector2 GetBlockPosition(int row, int col)
