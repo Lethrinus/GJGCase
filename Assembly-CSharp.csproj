@@ -48,10 +48,13 @@
   <ItemGroup>
     <Compile Include="Assets\Scripts\InputHandler.cs" />
     <Compile Include="Assets\Scripts\BoardSetupUI.cs" />
-    <Compile Include="Assets\Scripts\GameBoard.cs" />
+    <Compile Include="Assets\Scripts\BoardData.cs" />
     <Compile Include="Assets\Scripts\BoardSettings.cs" />
     <Compile Include="Assets\Scripts\BlockBehavior.cs" />
+    <Compile Include="Assets\Scripts\BoardGenerator.cs" />
+    <Compile Include="Assets\Scripts\DeadlockResolver.cs" />
     <Compile Include="Assets\Scripts\BlockPool.cs" />
+    <Compile Include="Assets\Scripts\BoardManager.cs" />
     <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Overlay.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile-2-Pass.shader" />

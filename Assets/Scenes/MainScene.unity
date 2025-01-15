@@ -119,62 +119,6 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &349940555
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 349940557}
-  - component: {fileID: 349940558}
-  m_Layer: 0
-  m_Name: GameBoard
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &349940557
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 349940555}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &349940558
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 349940555}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2bc208a04e2862f4d8ef593bf85903c5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  blockPool: {fileID: 408527078}
-  rows: 10
-  columns: 12
-  blockSize: 3
-  thresholdA: 4
-  thresholdB: 7
-  thresholdC: 9
-  moveSpeed: 40
-  backgroundColorA: {r: 0.745283, g: 0.2214756, b: 0.43349284, a: 1}
-  backgroundColorB: {r: 0.6603774, g: 0.6541474, b: 0.64480245, a: 1}
-  backgroundLerpTime: 6
-  shuffleFadeDuration: 0.75
 --- !u!1 &408527077
 GameObject:
   m_ObjectHideFlags: 0
@@ -407,11 +351,107 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 973a4ffb0674c09479e54c402f7cb6f6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &1952991123
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1952991127}
+  - component: {fileID: 1952991126}
+  - component: {fileID: 1952991125}
+  - component: {fileID: 1952991124}
+  m_Layer: 0
+  m_Name: GameManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1952991124
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1952991123}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c42bb9b929f50764a94a91875c48ea3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  boardGenerator: {fileID: 1952991125}
+  blockPool: {fileID: 408527078}
+--- !u!114 &1952991125
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1952991123}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0da6c5da85e83f844ac33ea315b7d5de, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  blockPool: {fileID: 408527078}
+--- !u!114 &1952991126
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1952991123}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f136e7bdbd69b9498e811d2d9d58fa2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  boardData:
+    rows: 0
+    columns: 0
+    blockSize: 1
+    blockGrid:
+    - {fileID: 2619933288934370886, guid: 8aac4a8cd05756741aab1c7bf8bf1715, type: 3}
+    - {fileID: 1195718099698568629, guid: c7ad8d24847eacc4c93f07020d8976e3, type: 3}
+    - {fileID: 9022015234532071219, guid: b531596a509cc9b43b32ea2dfbdc51ea, type: 3}
+    - {fileID: 8328259562235204654, guid: bdc9a7eeec6f6804fa57972a504a3b27, type: 3}
+    - {fileID: 1850579990347819242, guid: d5f1a4131d51a7d44aebf7ea0729c22e, type: 3}
+    - {fileID: 7382746373830832270, guid: 9f8de93e168414140923662262d80f57, type: 3}
+  boardGenerator: {fileID: 1952991125}
+  deadlockResolver: {fileID: 1952991124}
+  blockPool: {fileID: 408527078}
+  blockSize: 3
+  thresholdA: 4
+  thresholdB: 7
+  thresholdC: 9
+  moveSpeed: 40
+  shuffleFadeDuration: 0.4
+  backgroundColorA: {r: 0.735849, g: 0.45469916, b: 0.53815037, a: 1}
+  backgroundColorB: {r: 0.3, g: 0.4, b: 0.95, a: 1}
+  backgroundLerpTime: 6
+--- !u!4 &1952991127
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1952991123}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 519420032}
-  - {fileID: 349940557}
   - {fileID: 408527079}
   - {fileID: 759300683}
+  - {fileID: 1952991127}
