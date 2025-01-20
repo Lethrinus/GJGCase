@@ -25,7 +25,6 @@ public class BoardManager : MonoBehaviour
 
     private bool _isReady;
     private int _blocksAnimating;
-
     
     // We store this so we can call e.g. StartCoroutine(RemoveGroupWithAnimation).
     private Coroutine _currentRemovalRoutine;
@@ -81,9 +80,9 @@ public class BoardManager : MonoBehaviour
             inputHandler.OnBlockClicked -= OnBlockClicked;
     }
 
-    // -----------------------------------------------------------
-    //  Interaction: If the block is part of a group >= 2, remove it
-    // -----------------------------------------------------------
+    
+    // If the block is part of a group >= 2, remove it
+    
     private void OnBlockClicked(GameObject clickedBlock)
     {
         if (!_isReady || clickedBlock is null) return;
@@ -163,10 +162,9 @@ public class BoardManager : MonoBehaviour
         if (c - 1 >= 0) yield return boardData.GetIndex(r, c - 1);
         if (c + 1 < boardData.columns) yield return boardData.GetIndex(r, c + 1);
     }
-
-    // -----------------------------------------------------------
+    
     //  Removing and Updating
-    // -----------------------------------------------------------
+   
     private IEnumerator RemoveGroupWithAnimation(List<int> groupList)
     {
         // Optional: if big group, camera shake
@@ -314,9 +312,9 @@ public class BoardManager : MonoBehaviour
         }
     }
 
-    // -----------------------------------------------------------
-    //  Utility: Camera centering, background color, camera shake
-    // -----------------------------------------------------------
+    
+    // Camera centering, camera shake
+    
     private void CenterCamera()
     {
         Camera cam = Camera.main;

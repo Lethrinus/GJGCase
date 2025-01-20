@@ -4,9 +4,9 @@ using System.Collections.Generic;
 
 public class DeadlockResolver : MonoBehaviour
 {
-    
-    public BlockPool blockPool; 
-    
+    // Removed BoardGenerator since it was unused
+    public BlockPool blockPool;
+
     // Checks if the board is in deadlock: returns true if no group of >= 2.
     public bool IsDeadlock(BoardData boardData)
     {
@@ -19,8 +19,8 @@ public class DeadlockResolver : MonoBehaviour
             if (currentBb is null) continue;
 
             int colorID = currentBb.colorID;
-            
-            // We'll do a quick BFS or DFS to see if we can find 2 connected of the same color
+
+            // We will do a quick BFS or DFS to see if we can find 2 connected of the same color
             List<int> group = new List<int>();
             Stack<int> stack = new Stack<int>();
 
@@ -51,16 +51,15 @@ public class DeadlockResolver : MonoBehaviour
         return true;
     }
 
-    // Resolves deadlock by shuffling or forcibly creating at least one match.
    
-    public IEnumerator ResolveDeadlockOnce(BoardData boardData, Transform parent, 
-                                           float shuffleFadeDuration, 
+    public IEnumerator ResolveDeadlockOnce(BoardData boardData, Transform parent,
+                                           float shuffleFadeDuration,
                                            float thresholdA, float thresholdB, float thresholdC)
     {
-       // 1) Fade out the current board
+       // Fade out the current board
        yield return StartCoroutine(FadeBlocksOut(boardData, shuffleFadeDuration));
 
-       // 2) Return old blocks to the pool
+       // Return old blocks to the pool
        for (int i = 0; i < boardData.blockGrid.Length; i++)
        {
            if (boardData.blockGrid[i] is not null)
@@ -72,7 +71,7 @@ public class DeadlockResolver : MonoBehaviour
            }
        }
 
-       // 3) Generate a random list for ALL cells
+       // Generate a random list for ALL cells
        int boardSize = boardData.blockGrid.Length;
        List<int> allColorIDs = new List<int>(boardSize);
        for (int i = 0; i < boardSize; i++)
@@ -80,60 +79,49 @@ public class DeadlockResolver : MonoBehaviour
            allColorIDs.Add(Random.Range(0, blockPool.blockPrefabs.Length));
        }
 
-       int forcedIndexA = -1;
-       int forcedIndexB = -1;
-       bool foundPair = false;
+       
+       // Force one guaranteed adjacent pair
+      
+       List<(int indexA, int indexB)> adjacentPairs = new List<(int, int)>();
 
-       // We'll try up to 50 times to find a valid neighbor (for small boards)
-       const int maxTries = 50;
-       for (int t = 0; t < maxTries; t++)
+       // Collect all valid neighbors
+       for (int row = 0; row < boardData.rows; row++)
        {
-           if (boardData.rows < 2 && boardData.columns < 2)
+           for (int col = 0; col < boardData.columns; col++)
            {
-               // Single cell board => can't force adjacency
-               break;
-           }
-           int row = Random.Range(0, boardData.rows);
-           int col = Random.Range(0, boardData.columns);
-
-           bool canGoRight = (col < boardData.columns - 1);
-           bool canGoDown  = (row < boardData.rows - 1);
-
-           if (canGoRight || canGoDown)
-           {
-               foundPair = true;
-
-               // Decide to go right or down
-               int neighborRow = row;
-               int neighborCol = col;
-               if (canGoRight && canGoDown)
+               int currentIndex = row * boardData.columns + col;
+               // Right neighbor if col+1 in bounds
+               if (col + 1 < boardData.columns)
                {
-                   // 50/50
-                   if (Random.value < 0.5f) neighborCol++;
-                   else                     neighborRow++;
+                   int rightIndex = row * boardData.columns + (col + 1);
+                   adjacentPairs.Add((currentIndex, rightIndex));
                }
-               else if (canGoRight)
+               // Down neighbor if row+1 in bounds
+               if (row + 1 < boardData.rows)
                {
-                   neighborCol++;
+                   int downIndex = (row + 1) * boardData.columns + col;
+                   adjacentPairs.Add((currentIndex, downIndex));
                }
-               else // only canGoDown
-               {
-                   neighborRow++;
-               }
-
-               forcedIndexA = row * boardData.columns + col;
-               forcedIndexB = neighborRow * boardData.columns + neighborCol;
-
-               // Overwrite both cells with the same color ID
-               int forcedColor = Random.Range(0, blockPool.blockPrefabs.Length);
-               allColorIDs[forcedIndexA] = forcedColor;
-               allColorIDs[forcedIndexB] = forcedColor;
-               break;
            }
        }
 
+       int forcedIndexA = -1;
+       int forcedIndexB = -1;
+       if (adjacentPairs.Count > 0)
+       {
+           // Pick one random pair
+           (int indexA, int indexB) chosenPair = adjacentPairs[Random.Range(0, adjacentPairs.Count)];
+           forcedIndexA = chosenPair.indexA;
+           forcedIndexB = chosenPair.indexB;
+
+           // Overwrite both cells with the same color ID
+           int forcedColor = Random.Range(0, blockPool.blockPrefabs.Length);
+           allColorIDs[forcedIndexA] = forcedColor;
+           allColorIDs[forcedIndexB] = forcedColor;
+       }
+
        // Partial-shuffle the board, excluding the forced pair
-       if (foundPair)
+       if (forcedIndexA >= 0 && forcedIndexB >= 0)
        {
            List<int> shuffleIndices = new List<int>();
            for (int i = 0; i < boardSize; i++)
@@ -154,11 +142,11 @@ public class DeadlockResolver : MonoBehaviour
        }
        else
        {
-           // If no pair found, shuffle entire board normally
+           // If no pairs exist, shuffle entire board normally
            FisherYatesShuffle(allColorIDs);
        }
 
-       // 5) Spawn new blocks in final positions
+       // Spawn new blocks in final positions
        for (int i = 0; i < allColorIDs.Count; i++)
        {
            int row = i / boardData.columns;
@@ -181,10 +169,10 @@ public class DeadlockResolver : MonoBehaviour
            }
        }
 
-       // 6) Fade in
+       //  Fade in
        yield return StartCoroutine(FadeBlocksIn(boardData, shuffleFadeDuration));
     }
-    
+
     private IEnumerable<int> GetNeighbors(BoardData boardData, int index)
     {
         int r = index / boardData.columns;
