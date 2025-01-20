@@ -17,21 +17,16 @@ public class BoardManager : MonoBehaviour
     public int thresholdA = 4;
     public int thresholdB = 7;
     public int thresholdC = 9;
-    public float moveSpeed = 40f;
+    public float moveSpeed = 30f;
 
     [Header("Deadlock & Shuffle")]
     public float shuffleFadeDuration = 0.4f;
-
-    [Header("Background Lerp")]
-    public Color backgroundColorA = new Color(0.1f, 0.2f, 0.8f);
-    public Color backgroundColorB = new Color(0.3f, 0.4f, 0.95f);
-    public float backgroundLerpTime = 10f;
+    
 
     private bool _isReady;
     private int _blocksAnimating;
-    private float _lerpT;
-    private bool _lerpForward = true;
 
+    
     // We store this so we can call e.g. StartCoroutine(RemoveGroupWithAnimation).
     private Coroutine _currentRemovalRoutine;
 
@@ -56,7 +51,7 @@ public class BoardManager : MonoBehaviour
 
         // 5) Setup Input
         InputHandler inputHandler = FindObjectOfType<InputHandler>();
-        if (inputHandler != null)
+        if (inputHandler is not null)
             inputHandler.OnBlockClicked += OnBlockClicked;
         else
             Debug.LogError("BoardManager: InputHandler not found!");
@@ -76,19 +71,13 @@ public class BoardManager : MonoBehaviour
 
         _isReady = true;
     }
-
-    private void Update()
-    {
-        if (!_isReady) return;
-        LerpBackgroundColor();
-    }
-
+    
     [Obsolete("Obsolete")]
     private void OnDestroy()
     {
         // Clean up event
         InputHandler inputHandler = FindObjectOfType<InputHandler>();
-        if (inputHandler != null)
+        if (inputHandler is not null)
             inputHandler.OnBlockClicked -= OnBlockClicked;
     }
 
@@ -97,7 +86,7 @@ public class BoardManager : MonoBehaviour
     // -----------------------------------------------------------
     private void OnBlockClicked(GameObject clickedBlock)
     {
-        if (!_isReady || clickedBlock == null) return;
+        if (!_isReady || clickedBlock is null) return;
 
         int? index = FindBlockIndex(clickedBlock);
         if (!index.HasValue) return;
@@ -153,7 +142,7 @@ public class BoardManager : MonoBehaviour
             foreach (int neighbor in GetNeighbors(current))
             {
                 GameObject nGo = boardData.blockGrid[neighbor];
-                if (nGo != null)
+                if (nGo is not null)
                 {
                     BlockBehavior nBb = nGo.GetComponent<BlockBehavior>();
                     if (nBb && nBb.colorID == colorID && !groupList.Contains(neighbor))
@@ -193,7 +182,7 @@ public class BoardManager : MonoBehaviour
 
             blocksAnimating++;
             BlockBehavior bb = blockGo.GetComponent<BlockBehavior>();
-            if (bb != null)
+            if (bb is not null)
             {
                 StartCoroutine(bb.BlastAnimation(0.3f, () =>
                 {
@@ -222,7 +211,7 @@ public class BoardManager : MonoBehaviour
             for (int r = boardData.rows - 1; r >= 0; r--)
             {
                 int idx = boardData.GetIndex(r, c);
-                if (boardData.blockGrid[idx] != null)
+                if (boardData.blockGrid[idx] is not null)
                 {
                     if (r != writeRow)
                     {
@@ -241,7 +230,7 @@ public class BoardManager : MonoBehaviour
             {
                 GameObject newBlock = boardGenerator.SpawnBlock(boardData, newRow, c, transform,
                                                                 thresholdA, thresholdB, thresholdC);
-                if (newBlock != null)
+                if (newBlock is not null)
                 {
                     StartCoroutine(MoveBlock(newBlock, boardData.GetBlockPosition(newRow, c)));
                 }
@@ -260,7 +249,7 @@ public class BoardManager : MonoBehaviour
 
     private IEnumerator MoveBlock(GameObject block, Vector2 targetPos)
     {
-        while (block != null)
+        while (block is not null)
         {
             Vector2 current = block.transform.localPosition;
             if ((current - targetPos).sqrMagnitude < 0.0001f)
@@ -276,9 +265,6 @@ public class BoardManager : MonoBehaviour
     private void UpdateAllBlockSprites()
     {
         // For each block, figure out group size and update sprite.
-        // (We do this to update the correct sprite based on group size.)
-        // Just an example, adapted from your original code.
-
         List<int> group = new List<int>();
         Stack<int> stack = new Stack<int>();
 
@@ -291,8 +277,9 @@ public class BoardManager : MonoBehaviour
             stack.Clear();
 
             // BFS/DFS to find group size
+            
             BlockBehavior bb = blockGo.GetComponent<BlockBehavior>();
-            if (bb == null) continue;
+            if (bb is null) continue;
 
             int colorID = bb.colorID;
             stack.Push(i);
@@ -306,10 +293,10 @@ public class BoardManager : MonoBehaviour
                 foreach (int neighbor in GetNeighbors(current))
                 {
                     GameObject nGo = boardData.blockGrid[neighbor];
-                    if (nGo != null)
+                    if (nGo is not null)
                     {
                         BlockBehavior nBb = nGo.GetComponent<BlockBehavior>();
-                        if (nBb != null && nBb.colorID == colorID && !group.Contains(neighbor))
+                        if (nBb is not null && nBb.colorID == colorID && !group.Contains(neighbor))
                             stack.Push(neighbor);
                     }
                 }
@@ -358,9 +345,6 @@ public class BoardManager : MonoBehaviour
         else
         {
             halfCamHeight = halfBoardHeight;
-/*
-            halfCamWidth = halfCamHeight * aspectRatio;
-*/
         }
 
         float margin = 3f;
@@ -368,29 +352,8 @@ public class BoardManager : MonoBehaviour
         float finalSize = (halfCamHeight + margin) * zoomFactor;
         cam.orthographicSize = finalSize;
     }
-
-    private void LerpBackgroundColor()
-    {
-        Camera cam = Camera.main;
-        if (!cam) return;
-
-        _lerpT += _lerpForward ? Time.deltaTime / backgroundLerpTime : -Time.deltaTime / backgroundLerpTime;
-
-        if (_lerpT >= 1f)
-        {
-            _lerpT = 1f;
-            _lerpForward = false;
-        }
-        else if (_lerpT <= 0f)
-        {
-            _lerpT = 0f;
-            _lerpForward = true;
-        }
-
-        cam.backgroundColor = Color.Lerp(backgroundColorA, backgroundColorB, _lerpT);
-    }
-
-    private IEnumerator CameraShake(float duration, float magnitude)
+    
+    private static IEnumerator CameraShake(float duration, float magnitude)
     {
         Camera cam = Camera.main;
         if (!cam) yield break;

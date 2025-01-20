@@ -1,19 +1,19 @@
 using UnityEngine;
 
-/// <summary>
-/// Responsible for creating, positioning, and replenishing blocks on the board.
-/// </summary>
+
+// Responsible for creating, positioning, and replenishing blocks on the board.
+
 public class BoardGenerator : MonoBehaviour
 {
     public BlockPool blockPool;
 
-    /// <summary>
-    /// Generate the initial board. You can call this from BoardManager's Start or Init routine.
-    /// </summary>
+    
+    // Generate the initial board. You can call this from BoardManager's Start or Init routine.
+    
     public void GenerateBoard(BoardData boardData, Transform parent, 
                               int thresholdA, int thresholdB, int thresholdC)
     {
-        if (blockPool == null)
+        if (blockPool is null)
         {
             Debug.LogError("BoardGenerator: No BlockPool assigned!");
             return;
@@ -37,7 +37,7 @@ public class BoardGenerator : MonoBehaviour
 
                 // Setup block properties
                 BlockBehavior bb = block.GetComponent<BlockBehavior>();
-                if (bb != null)
+                if (bb is not null)
                 {
                     bb.thresholdA = thresholdA;
                     bb.thresholdB = thresholdB;
@@ -50,24 +50,24 @@ public class BoardGenerator : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Spawn a new block at a certain (row, col). Typically used during 'gravity' refill.
-    /// </summary>
+    
+    // Spawn a new block at a certain (row, col). Typically used during 'gravity' refill.
+    
     public GameObject SpawnBlock(BoardData boardData, int row, int col, Transform parent, 
                                  int thresholdA, int thresholdB, int thresholdC)
     {
-        if (blockPool == null) return null;
+        if (blockPool is null) return null;
 
         int prefabIndex = Random.Range(0, blockPool.blockPrefabs.Length);
         Vector2 spawnPos = boardData.GetBlockPosition(-1, col); // spawn above the board
         GameObject newBlock = blockPool.GetBlock(prefabIndex, spawnPos, parent);
-        if (newBlock != null)
+        if (newBlock is not null)
         {
             int idx = boardData.GetIndex(row, col);
             boardData.blockGrid[idx] = newBlock;
 
             BlockBehavior bb = newBlock.GetComponent<BlockBehavior>();
-            if (bb != null)
+            if (bb is not null)
             {
                 bb.thresholdA = thresholdA;
                 bb.thresholdB = thresholdB;
@@ -80,14 +80,14 @@ public class BoardGenerator : MonoBehaviour
         return newBlock;
     }
 
-    /// <summary>
-    /// Reclaim a block back to the pool.
-    /// </summary>
+    
+    // Reclaim a block back to the pool.
+    
     public void ReturnBlock(BoardData boardData, int index)
     {
-        if (boardData.blockGrid[index] == null) return;
+        if (boardData.blockGrid[index] is null) return;
         BlockBehavior bb = boardData.blockGrid[index].GetComponent<BlockBehavior>();
-        if (bb != null)
+        if (bb is not null)
             blockPool.ReturnBlock(boardData.blockGrid[index], bb.prefabIndex);
 
         boardData.blockGrid[index] = null;

@@ -46,7 +46,7 @@ public class BlockPool : MonoBehaviour
         block.transform.localEulerAngles = Vector3.zero;
 
         SpriteRenderer sr = block.GetComponent<SpriteRenderer>();
-        if (sr != null)
+        if (sr is not null)
         {
             Color color = sr.color;
             color.a = 1f;
@@ -54,7 +54,7 @@ public class BlockPool : MonoBehaviour
         }
 
         BlockBehavior bb = block.GetComponent<BlockBehavior>();
-        if (bb != null)
+        if (bb is not null)
         {
             bb.ResetBlock();
         }

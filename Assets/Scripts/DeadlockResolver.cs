@@ -2,26 +2,21 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
-/// <summary>
-/// Checks if the board has any possible moves (no deadlock) and resolves if needed.
-/// </summary>
 public class DeadlockResolver : MonoBehaviour
 {
-    public BoardGenerator boardGenerator;
-    public BlockPool blockPool;
-
-    /// <summary>
-    /// Checks if the board is in deadlock: returns true if no group of >= 2.
-    /// </summary>
+    
+    public BlockPool blockPool; 
+    
+    // Checks if the board is in deadlock: returns true if no group of >= 2.
     public bool IsDeadlock(BoardData boardData)
     {
         for (int i = 0; i < boardData.blockGrid.Length; i++)
         {
             GameObject blockGo = boardData.blockGrid[i];
-            if (blockGo == null) continue;
+            if (blockGo is null) continue;
 
             BlockBehavior currentBb = blockGo.GetComponent<BlockBehavior>();
-            if (currentBb == null) continue;
+            if (currentBb is null) continue;
 
             int colorID = currentBb.colorID;
             
@@ -56,74 +51,140 @@ public class DeadlockResolver : MonoBehaviour
         return true;
     }
 
-    /// <summary>
-    /// Resolves deadlock by shuffling or forcibly creating at least one match, etc.
-    /// </summary>
+    // Resolves deadlock by shuffling or forcibly creating at least one match.
+   
     public IEnumerator ResolveDeadlockOnce(BoardData boardData, Transform parent, 
                                            float shuffleFadeDuration, 
                                            float thresholdA, float thresholdB, float thresholdC)
     {
+       // 1) Fade out the current board
        yield return StartCoroutine(FadeBlocksOut(boardData, shuffleFadeDuration));
 
-    // 2. Return old blocks to pool
-    for (int i = 0; i < boardData.blockGrid.Length; i++)
-    {
-        if (boardData.blockGrid[i] != null)
-        {
-            BlockBehavior bb = boardData.blockGrid[i].GetComponent<BlockBehavior>();
-            if (bb != null)
-                blockPool.ReturnBlock(boardData.blockGrid[i], bb.prefabIndex);
-            boardData.blockGrid[i] = null;
-        }
+       // 2) Return old blocks to the pool
+       for (int i = 0; i < boardData.blockGrid.Length; i++)
+       {
+           if (boardData.blockGrid[i] is not null)
+           {
+               BlockBehavior bb = boardData.blockGrid[i].GetComponent<BlockBehavior>();
+               if (bb is not null)
+                   blockPool.ReturnBlock(boardData.blockGrid[i], bb.prefabIndex);
+               boardData.blockGrid[i] = null;
+           }
+       }
+
+       // 3) Generate a random list for ALL cells
+       int boardSize = boardData.blockGrid.Length;
+       List<int> allColorIDs = new List<int>(boardSize);
+       for (int i = 0; i < boardSize; i++)
+       {
+           allColorIDs.Add(Random.Range(0, blockPool.blockPrefabs.Length));
+       }
+
+       int forcedIndexA = -1;
+       int forcedIndexB = -1;
+       bool foundPair = false;
+
+       // We'll try up to 50 times to find a valid neighbor (for small boards)
+       const int maxTries = 50;
+       for (int t = 0; t < maxTries; t++)
+       {
+           if (boardData.rows < 2 && boardData.columns < 2)
+           {
+               // Single cell board => can't force adjacency
+               break;
+           }
+           int row = Random.Range(0, boardData.rows);
+           int col = Random.Range(0, boardData.columns);
+
+           bool canGoRight = (col < boardData.columns - 1);
+           bool canGoDown  = (row < boardData.rows - 1);
+
+           if (canGoRight || canGoDown)
+           {
+               foundPair = true;
+
+               // Decide to go right or down
+               int neighborRow = row;
+               int neighborCol = col;
+               if (canGoRight && canGoDown)
+               {
+                   // 50/50
+                   if (Random.value < 0.5f) neighborCol++;
+                   else                     neighborRow++;
+               }
+               else if (canGoRight)
+               {
+                   neighborCol++;
+               }
+               else // only canGoDown
+               {
+                   neighborRow++;
+               }
+
+               forcedIndexA = row * boardData.columns + col;
+               forcedIndexB = neighborRow * boardData.columns + neighborCol;
+
+               // Overwrite both cells with the same color ID
+               int forcedColor = Random.Range(0, blockPool.blockPrefabs.Length);
+               allColorIDs[forcedIndexA] = forcedColor;
+               allColorIDs[forcedIndexB] = forcedColor;
+               break;
+           }
+       }
+
+       // Partial-shuffle the board, excluding the forced pair
+       if (foundPair)
+       {
+           List<int> shuffleIndices = new List<int>();
+           for (int i = 0; i < boardSize; i++)
+           {
+               if (i == forcedIndexA || i == forcedIndexB) continue;
+               shuffleIndices.Add(i);
+           }
+
+           // Fisher-Yates only on those indices
+           for (int i = shuffleIndices.Count - 1; i > 0; i--)
+           {
+               int swapPos = Random.Range(0, i + 1);
+               int idxA = shuffleIndices[i];
+               int idxB = shuffleIndices[swapPos];
+
+               (allColorIDs[idxA], allColorIDs[idxB]) = (allColorIDs[idxB], allColorIDs[idxA]);
+           }
+       }
+       else
+       {
+           // If no pair found, shuffle entire board normally
+           FisherYatesShuffle(allColorIDs);
+       }
+
+       // 5) Spawn new blocks in final positions
+       for (int i = 0; i < allColorIDs.Count; i++)
+       {
+           int row = i / boardData.columns;
+           int col = i % boardData.columns;
+
+           // Place directly in final position:
+           Vector2 spawnPos = boardData.GetBlockPosition(row, col);
+           GameObject newBlock = blockPool.GetBlock(allColorIDs[i], spawnPos, parent);
+
+           if (newBlock is not null)
+           {
+               boardData.blockGrid[i] = newBlock;
+               BlockBehavior bb = newBlock.GetComponent<BlockBehavior>();
+               if (bb is not null)
+               {
+                   bb.colorID = allColorIDs[i];
+                   bb.prefabIndex = allColorIDs[i];
+                   bb.ResetBlock();
+               }
+           }
+       }
+
+       // 6) Fade in
+       yield return StartCoroutine(FadeBlocksIn(boardData, shuffleFadeDuration));
     }
-
-    // 3. Generate a new list of colorIDs (ensuring at least one pair)
-    List<int> allColorIDs = new List<int>();
-    for (int i = 0; i < boardData.blockGrid.Length; i++)
-    {
-        allColorIDs.Add(Random.Range(0, blockPool.blockPrefabs.Length));
-    }
-    // Force at least one pair:
-    if (allColorIDs.Count >= 2)
-    {
-        int indexA = Random.Range(0, allColorIDs.Count);
-        int indexB;
-        do { indexB = Random.Range(0, allColorIDs.Count); } while (indexB == indexA);
-        int colorID = Random.Range(0, blockPool.blockPrefabs.Length);
-        allColorIDs[indexA] = colorID;
-        allColorIDs[indexB] = colorID;
-    }
-
-    // Optional shuffle
-    FisherYatesShuffle(allColorIDs);
-
-    // 4. Spawn new blocks at correct row/col
-    for (int i = 0; i < allColorIDs.Count; i++)
-    {
-        int row = i / boardData.columns;
-        int col = i % boardData.columns;
-
-        // Place directly in final position:
-        Vector2 spawnPos = boardData.GetBlockPosition(row, col);
-        GameObject newBlock = blockPool.GetBlock(allColorIDs[i], spawnPos, parent);
-
-        if (newBlock != null)
-        {
-            boardData.blockGrid[i] = newBlock;
-            BlockBehavior bb = newBlock.GetComponent<BlockBehavior>();
-            if (bb != null)
-            {
-                bb.colorID = allColorIDs[i];
-                bb.prefabIndex = allColorIDs[i];
-                bb.ResetBlock();
-            }
-        }
-    }
-
-    // 5. Fade in
-    yield return StartCoroutine(FadeBlocksIn(boardData, shuffleFadeDuration));
-}
-
+    
     private IEnumerable<int> GetNeighbors(BoardData boardData, int index)
     {
         int r = index / boardData.columns;
@@ -154,7 +215,7 @@ public class DeadlockResolver : MonoBehaviour
         List<SpriteRenderer> srs = new List<SpriteRenderer>();
         foreach (var blockGo in boardData.blockGrid)
         {
-            if (blockGo == null) continue;
+            if (blockGo is null) continue;
             SpriteRenderer sr = blockGo.GetComponent<SpriteRenderer>();
             if (sr) srs.Add(sr);
         }
@@ -165,7 +226,7 @@ public class DeadlockResolver : MonoBehaviour
             float alpha = Mathf.Lerp(1f, 0f, t);
             foreach (var sr in srs)
             {
-                if (sr != null)
+                if (sr is not null)
                     sr.color = new Color(sr.color.r, sr.color.g, sr.color.b, alpha);
             }
             elapsed += Time.deltaTime;
@@ -173,7 +234,7 @@ public class DeadlockResolver : MonoBehaviour
         }
 
         foreach (var sr in srs)
-            if (sr != null)
+            if (sr is not null)
                 sr.color = new Color(sr.color.r, sr.color.g, sr.color.b, 0f);
     }
 
@@ -184,7 +245,7 @@ public class DeadlockResolver : MonoBehaviour
 
         foreach (var blockGo in boardData.blockGrid)
         {
-            if (blockGo == null) continue;
+            if (blockGo is null) continue;
             SpriteRenderer sr = blockGo.GetComponent<SpriteRenderer>();
             if (sr)
             {
@@ -199,7 +260,7 @@ public class DeadlockResolver : MonoBehaviour
             float alpha = Mathf.Lerp(0f, 1f, t);
             foreach (var sr in srs)
             {
-                if (sr != null)
+                if (sr is not null)
                     sr.color = new Color(sr.color.r, sr.color.g, sr.color.b, alpha);
             }
             elapsed += Time.deltaTime;
@@ -207,7 +268,7 @@ public class DeadlockResolver : MonoBehaviour
         }
 
         foreach (var sr in srs)
-            if (sr != null)
+            if (sr is not null)
                 sr.color = new Color(sr.color.r, sr.color.g, sr.color.b, 1f);
     }
 }

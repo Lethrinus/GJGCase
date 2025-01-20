@@ -43,15 +43,13 @@ public class BlockBehavior : MonoBehaviour
 
     public void UpdateSpriteBasedOnGroupSize(int groupSize)
     {
-        if (!_spriteRenderer) return;
-
-        if (groupSize < thresholdA)
+        if (groupSize <= thresholdA) 
             _spriteRenderer.sprite = defaultSprite;
-        else if (groupSize < thresholdB)
+        else if (groupSize <= thresholdB)  
             _spriteRenderer.sprite = spriteA;
-        else if (groupSize < thresholdC)
+        else if (groupSize <= thresholdC)  
             _spriteRenderer.sprite = spriteB;
-        else
+        else                              
             _spriteRenderer.sprite = spriteC;
     }
 

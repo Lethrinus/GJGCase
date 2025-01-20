@@ -1,23 +1,17 @@
 using UnityEngine;
 
-/// <summary>
-/// Stores board size, the grid, and utility methods for indexing.
-/// </summary>
+// Stores board size, the grid, and utility methods for indexing.
+
 [System.Serializable]
 public class BoardData
 {
     [HideInInspector] public int rows;
     [HideInInspector] public int columns;
     [HideInInspector] public float blockSize = 1f;
-
-    /// <summary>
-    /// Internal storage for block references in the board.
-    /// </summary>
+    
+    // Internal storage for block references in the board.
     public GameObject[] blockGrid;
-
-    /// <summary>
-    /// Initialize the board data arrays with the given dimensions.
-    /// </summary>
+    // Initialize the board data arrays with the given dimensions.
     public void Initialize(int rows, int columns, float blockSize)
     {
         this.rows = rows;
@@ -26,18 +20,16 @@ public class BoardData
 
         blockGrid = new GameObject[rows * columns];
     }
-
-    /// <summary>
-    /// Converts (row, col) to index in blockGrid array.
-    /// </summary>
+    
+    // Converts (row, col) to index in blockGrid array.
+    
     public int GetIndex(int row, int col)
     {
         return row * columns + col;
     }
-
-    /// <summary>
-    /// Returns the world position for a block at (row, col).
-    /// </summary>
+    
+    // Returns the world position for a block at (row, col).
+    
     public Vector2 GetBlockPosition(int row, int col)
     {
         float x = col * blockSize;
