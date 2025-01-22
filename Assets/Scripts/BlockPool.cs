@@ -1,78 +1,54 @@
-using System.Collections.Generic;
 using UnityEngine;
+using System.Collections.Generic;
 
 public class BlockPool : MonoBehaviour
 {
-    public GameObject[] blockPrefabs;
-    private Queue<GameObject>[] _pools;
-
-    private void Awake()
+    public BlockBehavior[] blockPrefabs;
+    Queue<BlockBehavior>[] pools;
+    void Awake()
     {
-        if (blockPrefabs == null || blockPrefabs.Length == 0)
-        {
-            Debug.LogError("BlockPool: No prefabs assigned!");
-            return;
-        }
-
-        _pools = new Queue<GameObject>[blockPrefabs.Length];
+        pools = new Queue<BlockBehavior>[blockPrefabs.Length];
         for (int i = 0; i < blockPrefabs.Length; i++)
         {
-            _pools[i] = new Queue<GameObject>();
+            pools[i] = new Queue<BlockBehavior>();
         }
     }
-
-    public GameObject GetBlock(int prefabIndex, Vector2 position, Transform parent)
+    public BlockBehavior GetBlock(int prefabIndex, Vector2 pos, Transform parent)
     {
-        if (prefabIndex < 0 || prefabIndex >= blockPrefabs.Length)
+        if (prefabIndex < 0 || prefabIndex >= blockPrefabs.Length) return null;
+        BlockBehavior block;
+        if (pools[prefabIndex].Count > 0)
         {
-            Debug.LogError($"BlockPool: Invalid prefab index {prefabIndex}.");
-            return null;
-        }
-
-        GameObject block;
-        if (_pools[prefabIndex].Count > 0)
-        {
-            block = _pools[prefabIndex].Dequeue();
-            block.SetActive(true);
-            block.transform.position = position;
+            block = pools[prefabIndex].Dequeue();
+            block.gameObject.SetActive(true);
+            block.transform.position = pos;
             block.transform.parent = parent;
         }
         else
         {
-            block = Instantiate(blockPrefabs[prefabIndex], position, Quaternion.identity, parent);
+            block = Instantiate(blockPrefabs[prefabIndex], pos, Quaternion.identity, parent);
         }
-
         block.transform.localScale = Vector3.one;
         block.transform.localEulerAngles = Vector3.zero;
-
-        SpriteRenderer sr = block.GetComponent<SpriteRenderer>();
-        if (sr is not null)
+        var sr = block.SpriteRenderer;
+        if (sr)
         {
-            Color color = sr.color;
-            color.a = 1f;
-            sr.color = color;
+            var c = sr.color;
+            c.a = 1f;
+            sr.color = c;
         }
-
-        BlockBehavior bb = block.GetComponent<BlockBehavior>();
-        if (bb is not null)
-        {
-            bb.ResetBlock();
-        }
-
+        block.ResetBlock();
         return block;
     }
-
-    public void ReturnBlock(GameObject block, int prefabIndex)
+    public void ReturnBlock(BlockBehavior block, int prefabIndex)
     {
         if (prefabIndex < 0 || prefabIndex >= blockPrefabs.Length)
         {
-            Debug.LogError($"BlockPool: Invalid prefab index {prefabIndex}.");
-            Destroy(block);
+            Destroy(block.gameObject);
             return;
         }
-
-        block.SetActive(false);
+        block.gameObject.SetActive(false);
         block.transform.parent = transform;
-        _pools[prefabIndex].Enqueue(block);
+        pools[prefabIndex].Enqueue(block);
     }
 }

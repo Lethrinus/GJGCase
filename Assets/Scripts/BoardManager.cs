@@ -1,372 +1,246 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using Random = UnityEngine.Random;
+using System.Collections.Generic;
+using DG.Tweening;
 
 public class BoardManager : MonoBehaviour
 {
-    [Header("Data/References")]
     public BoardData boardData;
     public BoardGenerator boardGenerator;
     public DeadlockResolver deadlockResolver;
     public BlockPool blockPool;
-
-    [Header("Board Setup")]
-    public float blockSize = 1f;
-    public int thresholdA = 4;
-    public int thresholdB = 7;
-    public int thresholdC = 9;
-    public float moveSpeed = 30f;
-
-    [Header("Deadlock & Shuffle")]
-    public float shuffleFadeDuration = 0.4f;
-    
-
-    private bool _isReady;
-    private int _blocksAnimating;
-    
-    // We store this so we can call e.g. StartCoroutine(RemoveGroupWithAnimation).
-    private Coroutine _currentRemovalRoutine;
-
-    [Obsolete("Obsolete")]
-    private void Start()
+    public BoardConfig boardConfig;
+    bool isReady;
+    void Start()
     {
-        // Load row/column from BoardSettings (or anywhere)
         int rows = BoardSettings.Rows;
-        int columns = BoardSettings.Columns;
-
-        // 1) Initialize board data
-        boardData.Initialize(rows, columns, blockSize);
-
-        // 2) Generate board
-        boardGenerator.GenerateBoard(boardData, transform, thresholdA, thresholdB, thresholdC);
-
-        // 3) Optional: center camera
+        int cols = BoardSettings.Columns;
+        boardData.Initialize(rows, cols, boardConfig.blockSize);
+        boardGenerator.GenerateBoard(boardData, transform, boardConfig.thresholdA, boardConfig.thresholdB, boardConfig.thresholdC);
         CenterCamera();
-
-        // 4) Wait a frame, then check for deadlock
-        StartCoroutine(InitializeBoardRoutine());
-
-        // 5) Setup Input
-        InputHandler inputHandler = FindObjectOfType<InputHandler>();
-        if (inputHandler is not null)
-            inputHandler.OnBlockClicked += OnBlockClicked;
-        else
-            Debug.LogError("BoardManager: InputHandler not found!");
-    }
-
-    private IEnumerator InitializeBoardRoutine()
-    {
-        yield return new WaitForSeconds(0.1f);
+        InputHandler ih = FindObjectOfType<InputHandler>();
+        if (ih) ih.OnBlockClicked += OnBlockClicked;
         UpdateAllBlockSprites();
-        yield return new WaitForSeconds(0.2f);
-
         if (deadlockResolver.IsDeadlock(boardData))
         {
-            yield return StartCoroutine(deadlockResolver.ResolveDeadlockOnce(
-                boardData, transform, shuffleFadeDuration, thresholdA, thresholdB, thresholdC));
+            ResolveDeadlockSequence(() => { isReady = true; });
         }
-
-        _isReady = true;
+        else
+        {
+            isReady = true;
+        }
     }
-    
-    [Obsolete("Obsolete")]
-    private void OnDestroy()
+    void OnDestroy()
     {
-        // Clean up event
-        InputHandler inputHandler = FindObjectOfType<InputHandler>();
-        if (inputHandler is not null)
-            inputHandler.OnBlockClicked -= OnBlockClicked;
+        InputHandler ih = FindObjectOfType<InputHandler>();
+        if (ih) ih.OnBlockClicked -= OnBlockClicked;
     }
-
-    
-    // If the block is part of a group >= 2, remove it
-    
-    private void OnBlockClicked(GameObject clickedBlock)
+    void OnBlockClicked(BlockBehavior clicked)
     {
-        if (!_isReady || clickedBlock is null) return;
-
-        int? index = FindBlockIndex(clickedBlock);
-        if (!index.HasValue) return;
-
-        List<int> group = GetConnectedGroup(index.Value);
+        if (!isReady || clicked == null) return;
+        int? idx = FindBlockIndex(clicked);
+        if (!idx.HasValue) return;
+        List<int> group = GetConnectedGroup(idx.Value);
         if (group.Count < 2)
         {
-            // Just buzz the block
-            BlockBehavior bb = clickedBlock.GetComponent<BlockBehavior>();
-            bb?.StartBuzz();
+            clicked.StartBuzz();
             return;
         }
+        isReady = false;
+        RemoveGroupSequence(group, () =>
+        {
+            UpdateBoardSequence(() =>
+            {
+                isReady = true;
+            });
+        });
+    }
+    void RemoveGroupSequence(List<int> group, System.Action onComplete)
+    {
+        if (group.Count >= 7) CameraShake(boardConfig.shakeDuration, boardConfig.shakeMagnitude);
+        Sequence removeSeq = DOTween.Sequence();
+        foreach (int i in group)
+        {
+            var block = boardData.blockGrid[i];
+            if (!block) continue;
+            Sequence blast = DOTween.Sequence();
+            blast.Join(block.transform.DOScale(block.transform.localScale * 1.5f, 0.3f));
+            if (block.SpriteRenderer) blast.Join(block.SpriteRenderer.DOFade(0f, 0.3f));
+            blast.OnComplete(() =>
+            {
+                boardGenerator.ReturnBlock(boardData, i);
+            });
+            removeSeq.Join(blast);
+        }
+        removeSeq.OnComplete(() => onComplete());
+    }
+    void UpdateBoardSequence(System.Action onComplete)
+    {
+        Sequence seq = DOTween.Sequence();
 
-        // Remove the group
-        _isReady = false;
-        if (_currentRemovalRoutine != null)
-            StopCoroutine(_currentRemovalRoutine);
-
-        _currentRemovalRoutine = StartCoroutine(RemoveGroupWithAnimation(group));
+for (int c = 0; c < boardData.columns; c++)
+{
+    int writeRow = boardData.rows - 1;
+    for (int r = boardData.rows - 1; r >= 0; r--)
+    {
+        int idx = boardData.GetIndex(r, c);
+        var block = boardData.blockGrid[idx];
+        if (block)
+        {
+            if (r != writeRow)
+            {
+                int wIdx = boardData.GetIndex(writeRow, c);
+                boardData.blockGrid[wIdx] = block;
+                boardData.blockGrid[idx] = null;
+                block.SetSortingOrder(writeRow);
+                Vector2 targetPos = boardData.GetBlockPosition(writeRow, c);
+                float dist = Vector2.Distance(block.transform.localPosition, targetPos);
+                float dur = dist / boardConfig.moveSpeed;
+                seq.Join(
+                    block.transform.DOLocalMove(targetPos, dur).SetEase(Ease.Linear)
+                        .OnComplete(() =>
+                        {
+                            // Bounce only if it lands on row 0
+                            if (writeRow == 0)
+                            {
+                                block.transform.DOJump(targetPos, 0.6f, 1, 0.75f).SetEase(Ease.OutCubic);
+                            }
+                        })
+                );
+            }
+            writeRow--;
+        }
     }
 
-    private int? FindBlockIndex(GameObject block)
+    for (int newRow = writeRow; newRow >= 0; newRow--)
+    {
+        var nb = boardGenerator.SpawnBlock(boardData, newRow, c, transform,
+                                           boardConfig.thresholdA, boardConfig.thresholdB, boardConfig.thresholdC);
+        if (nb)
+        {
+            Vector2 tp = boardData.GetBlockPosition(newRow, c);
+            float dist = Vector2.Distance(nb.transform.localPosition, tp);
+            float dur = dist / boardConfig.moveSpeed;
+            seq.Join(
+                nb.transform.DOLocalMove(tp, dur).SetEase(Ease.Linear)
+                    .OnComplete(() =>
+                    {
+                        // Removed the if-check here, so new blocks always bounce:
+                        nb.transform.DOJump(tp, 0.6f, 1, 0.75f).SetEase(Ease.OutCubic);
+                    })
+            );
+        }
+    }
+
+        }
+        seq.OnComplete(() =>
+        {
+            UpdateAllBlockSprites();
+            if (deadlockResolver.IsDeadlock(boardData))
+            {
+                ResolveDeadlockSequence(() => onComplete());
+            }
+            else
+            {
+                onComplete();
+            }
+        });
+    }
+    void ResolveDeadlockSequence(System.Action onComplete)
+    {
+        deadlockResolver.ResolveDeadlockOnceNoCoroutines(boardData, transform, boardConfig.shuffleFadeDuration,
+            boardConfig.thresholdA, boardConfig.thresholdB, boardConfig.thresholdC, onComplete);
+    }
+    int? FindBlockIndex(BlockBehavior block)
     {
         for (int i = 0; i < boardData.blockGrid.Length; i++)
         {
-            if (boardData.blockGrid[i] == block)
-                return i;
+            if (boardData.blockGrid[i] == block) return i;
         }
         return null;
     }
-
-    private List<int> GetConnectedGroup(int startIndex)
+    List<int> GetConnectedGroup(int start)
     {
-        List<int> groupList = new List<int>();
+        List<int> group = new List<int>();
         Stack<int> stack = new Stack<int>();
-
-        GameObject startGo = boardData.blockGrid[startIndex];
-        if (!startGo) return groupList;
-
-        BlockBehavior startBb = startGo.GetComponent<BlockBehavior>();
-        if (!startBb) return groupList;
-
-        int colorID = startBb.colorID;
-
-        stack.Push(startIndex);
-
+        var begin = boardData.blockGrid[start];
+        if (!begin) return group;
+        int colID = begin.colorID;
+        stack.Push(start);
         while (stack.Count > 0)
         {
-            int current = stack.Pop();
-            if (groupList.Contains(current)) continue;
-            groupList.Add(current);
-
-            foreach (int neighbor in GetNeighbors(current))
+            int cur = stack.Pop();
+            if (group.Contains(cur)) continue;
+            group.Add(cur);
+            foreach (int nb in GetNeighbors(cur))
             {
-                GameObject nGo = boardData.blockGrid[neighbor];
-                if (nGo is not null)
-                {
-                    BlockBehavior nBb = nGo.GetComponent<BlockBehavior>();
-                    if (nBb && nBb.colorID == colorID && !groupList.Contains(neighbor))
-                        stack.Push(neighbor);
-                }
+                var b = boardData.blockGrid[nb];
+                if (b && b.colorID == colID && !group.Contains(nb)) stack.Push(nb);
             }
         }
-        return groupList;
+        return group;
     }
-
-    private IEnumerable<int> GetNeighbors(int index)
+    IEnumerable<int> GetNeighbors(int i)
     {
-        int r = index / boardData.columns;
-        int c = index % boardData.columns;
-
+        int r = i / boardData.columns;
+        int c = i % boardData.columns;
         if (r - 1 >= 0) yield return boardData.GetIndex(r - 1, c);
         if (r + 1 < boardData.rows) yield return boardData.GetIndex(r + 1, c);
         if (c - 1 >= 0) yield return boardData.GetIndex(r, c - 1);
         if (c + 1 < boardData.columns) yield return boardData.GetIndex(r, c + 1);
     }
-    
-    //  Removing and Updating
-   
-    private IEnumerator RemoveGroupWithAnimation(List<int> groupList)
+    void UpdateAllBlockSprites()
     {
-        // Optional: if big group, camera shake
-        if (groupList.Count >= 7)
-            StartCoroutine(CameraShake(0.36f, 0.24f));
-
-        // Animate each block blast
-        int blocksAnimating = 0;
-        foreach (int idx in groupList)
-        {
-            GameObject blockGo = boardData.blockGrid[idx];
-            if (!blockGo) continue;
-
-            blocksAnimating++;
-            BlockBehavior bb = blockGo.GetComponent<BlockBehavior>();
-            if (bb is not null)
-            {
-                StartCoroutine(bb.BlastAnimation(0.3f, () =>
-                {
-                    boardGenerator.ReturnBlock(boardData, idx);
-                    blocksAnimating--;
-                }));
-            }
-        }
-
-        // Wait until all blasts finish
-        while (blocksAnimating > 0)
-            yield return null;
-
-        yield return StartCoroutine(UpdateBoardAfterRemoval());
-        _isReady = true;
-    }
-
-    private IEnumerator UpdateBoardAfterRemoval()
-    {
-        yield return new WaitForSeconds(0.05f);
-
-        // Gravity-like shift
-        for (int c = 0; c < boardData.columns; c++)
-        {
-            int writeRow = boardData.rows - 1;
-            for (int r = boardData.rows - 1; r >= 0; r--)
-            {
-                int idx = boardData.GetIndex(r, c);
-                if (boardData.blockGrid[idx] is not null)
-                {
-                    if (r != writeRow)
-                    {
-                        int writeIndex = boardData.GetIndex(writeRow, c);
-                        boardData.blockGrid[writeIndex] = boardData.blockGrid[idx];
-                        boardData.blockGrid[idx] = null;
-                        StartCoroutine(MoveBlock(boardData.blockGrid[writeIndex],
-                                                 boardData.GetBlockPosition(writeRow, c)));
-                    }
-                    writeRow--;
-                }
-            }
-
-            // Replenish the top empty spaces
-            for (int newRow = writeRow; newRow >= 0; newRow--)
-            {
-                GameObject newBlock = boardGenerator.SpawnBlock(boardData, newRow, c, transform,
-                                                                thresholdA, thresholdB, thresholdC);
-                if (newBlock is not null)
-                {
-                    StartCoroutine(MoveBlock(newBlock, boardData.GetBlockPosition(newRow, c)));
-                }
-            }
-        }
-
-        yield return new WaitForSeconds(0.5f);
-        UpdateAllBlockSprites();
-
-        if (deadlockResolver.IsDeadlock(boardData))
-        {
-            yield return StartCoroutine(deadlockResolver.ResolveDeadlockOnce(
-                boardData, transform, shuffleFadeDuration, thresholdA, thresholdB, thresholdC));
-        }
-    }
-
-    private IEnumerator MoveBlock(GameObject block, Vector2 targetPos)
-    {
-        while (block is not null)
-        {
-            Vector2 current = block.transform.localPosition;
-            if ((current - targetPos).sqrMagnitude < 0.0001f)
-            {
-                block.transform.localPosition = targetPos;
-                yield break;
-            }
-            block.transform.localPosition = Vector2.MoveTowards(current, targetPos, moveSpeed * Time.deltaTime);
-            yield return null;
-        }
-    }
-
-    private void UpdateAllBlockSprites()
-    {
-        // For each block, figure out group size and update sprite.
         List<int> group = new List<int>();
         Stack<int> stack = new Stack<int>();
-
         for (int i = 0; i < boardData.blockGrid.Length; i++)
         {
-            GameObject blockGo = boardData.blockGrid[i];
-            if (!blockGo) continue;
-
+            var blk = boardData.blockGrid[i];
+            if (!blk) continue;
             group.Clear();
             stack.Clear();
-
-            // BFS/DFS to find group size
-            
-            BlockBehavior bb = blockGo.GetComponent<BlockBehavior>();
-            if (bb is null) continue;
-
-            int colorID = bb.colorID;
+            int colID = blk.colorID;
             stack.Push(i);
-
             while (stack.Count > 0)
             {
-                int current = stack.Pop();
-                if (group.Contains(current)) continue;
-                group.Add(current);
-
-                foreach (int neighbor in GetNeighbors(current))
+                int cur = stack.Pop();
+                if (group.Contains(cur)) continue;
+                group.Add(cur);
+                foreach (int nb in GetNeighbors(cur))
                 {
-                    GameObject nGo = boardData.blockGrid[neighbor];
-                    if (nGo is not null)
-                    {
-                        BlockBehavior nBb = nGo.GetComponent<BlockBehavior>();
-                        if (nBb is not null && nBb.colorID == colorID && !group.Contains(neighbor))
-                            stack.Push(neighbor);
-                    }
+                    var b = boardData.blockGrid[nb];
+                    if (b && b.colorID == colID && !group.Contains(nb)) stack.Push(nb);
                 }
             }
-
-            int size = group.Count;
-            // Update sprite for each index in that group
-            foreach (var idx in group)
+            int sz = group.Count;
+            foreach (int x in group)
             {
-                var go = boardData.blockGrid[idx];
-                if (!go) continue;
-                var blockBehavior = go.GetComponent<BlockBehavior>();
-                blockBehavior?.UpdateSpriteBasedOnGroupSize(size);
+                var b = boardData.blockGrid[x];
+                if (b) b.UpdateSpriteBasedOnGroupSize(sz);
             }
         }
     }
-
-    
-    // Camera centering, camera shake
-    
-    private void CenterCamera()
+    void CenterCamera()
     {
-        Camera cam = Camera.main;
+        var cam = Camera.main;
         if (!cam) return;
-
-        float boardWidth = (boardData.columns - 1) * boardData.blockSize;
-        float boardHeight = (boardData.rows - 1) * boardData.blockSize;
-
-        float centerX = boardWidth * 0.5f;
-        float centerY = boardHeight * 0.5f;
-
-        cam.transform.position = new Vector3(centerX, centerY, cam.transform.position.z);
-
-        // Fit camera
-        float halfBoardWidth = boardWidth * 0.5f;
-        float halfBoardHeight = boardHeight * 0.5f;
-        float aspectRatio = Screen.width / (float)Screen.height;
-
-        float halfCamHeight;
-
-        if (halfBoardWidth / aspectRatio > halfBoardHeight)
-        {
-            var halfCamWidth = halfBoardWidth;
-            halfCamHeight = halfCamWidth / aspectRatio;
-        }
-        else
-        {
-            halfCamHeight = halfBoardHeight;
-        }
-
+        float w = (boardData.columns - 1) * boardData.blockSize;
+        float h = (boardData.rows - 1) * boardData.blockSize;
+        float cx = w * 0.5f;
+        float cy = h * 0.5f;
+        cam.transform.position = new Vector3(cx, cy, cam.transform.position.z);
+        float halfW = w * 0.5f;
+        float halfH = h * 0.5f;
+        float ar = Screen.width / (float)Screen.height;
+        float halfCamH;
+        if (halfW / ar > halfH) halfCamH = (halfW / ar);
+        else halfCamH = halfH;
         float margin = 3f;
-        float zoomFactor = 1.1f;
-        float finalSize = (halfCamHeight + margin) * zoomFactor;
-        cam.orthographicSize = finalSize;
+        float zoom = 1.1f;
+        cam.orthographicSize = (halfCamH + margin) * zoom;
     }
-    
-    private static IEnumerator CameraShake(float duration, float magnitude)
+    void CameraShake(float dur, float mag)
     {
-        Camera cam = Camera.main;
-        if (!cam) yield break;
-
-        Vector3 originalPos = cam.transform.position;
-        float elapsed = 0f;
-
-        while (elapsed < duration)
-        {
-            float offsetX = Random.Range(-1f, 1f) * magnitude;
-            float offsetY = Random.Range(-1f, 1f) * magnitude;
-            cam.transform.position = new Vector3(originalPos.x + offsetX, originalPos.y + offsetY, originalPos.z);
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-        cam.transform.position = originalPos;
+        var cam = Camera.main;
+        if (cam) cam.DOShakePosition( dur, mag, 20, 90, false);
     }
 }
