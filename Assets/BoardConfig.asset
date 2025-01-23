@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: BoardConfig
   m_EditorClassIdentifier: 
   blockSize: 2.23
-  moveSpeed: 20
+  moveSpeed: 35
   thresholdA: 4
   thresholdB: 7
   thresholdC: 9

@@ -10,6 +10,7 @@ public class BoardManager : MonoBehaviour
     public BlockPool blockPool;
     public BoardConfig boardConfig;
     bool isReady;
+    
     void Start()
     {
         int rows = BoardSettings.Rows;
@@ -99,10 +100,10 @@ for (int c = 0; c < boardData.columns; c++)
                     block.transform.DOLocalMove(targetPos, dur).SetEase(Ease.Linear)
                         .OnComplete(() =>
                         {
-                            // Bounce only if it lands on row 0
+                            
                             if (writeRow == 0)
                             {
-                                block.transform.DOJump(targetPos, 0.6f, 1, 0.75f).SetEase(Ease.OutCubic);
+                                block.transform.DOJump(targetPos, 0.6f, 1, 0.5f).SetEase(Ease.OutCubic);
                             }
                         })
                 );
@@ -124,8 +125,7 @@ for (int c = 0; c < boardData.columns; c++)
                 nb.transform.DOLocalMove(tp, dur).SetEase(Ease.Linear)
                     .OnComplete(() =>
                     {
-                        // Removed the if-check here, so new blocks always bounce:
-                        nb.transform.DOJump(tp, 0.6f, 1, 0.75f).SetEase(Ease.OutCubic);
+                        nb.transform.DOJump(tp, 0.6f, 1, 0.5f).SetEase(Ease.OutCubic);
                     })
             );
         }
@@ -147,7 +147,7 @@ for (int c = 0; c < boardData.columns; c++)
     }
     void ResolveDeadlockSequence(System.Action onComplete)
     {
-        deadlockResolver.ResolveDeadlockOnceNoCoroutines(boardData, transform, boardConfig.shuffleFadeDuration,
+        deadlockResolver.ResolveDeadlockFullRefill(boardData, transform, boardConfig.shuffleFadeDuration,
             boardConfig.thresholdA, boardConfig.thresholdB, boardConfig.thresholdC, onComplete);
     }
     int? FindBlockIndex(BlockBehavior block)
@@ -188,37 +188,52 @@ for (int c = 0; c < boardData.columns; c++)
         if (c - 1 >= 0) yield return boardData.GetIndex(r, c - 1);
         if (c + 1 < boardData.columns) yield return boardData.GetIndex(r, c + 1);
     }
-    void UpdateAllBlockSprites()
+   private void UpdateAllBlockSprites()
+{
+  
+    bool[] visited = new bool[boardData.blockGrid.Length];
+
+    for (int i = 0; i < boardData.blockGrid.Length; i++)
     {
+       
+        if (boardData.blockGrid[i] == null || visited[i])
+            continue;
+        
+        int colorID = boardData.blockGrid[i].colorID;
         List<int> group = new List<int>();
-        Stack<int> stack = new Stack<int>();
-        for (int i = 0; i < boardData.blockGrid.Length; i++)
+        Stack<int> stack = new Stack<int>();  
+        stack.Push(i);
+
+        while (stack.Count > 0)
         {
-            var blk = boardData.blockGrid[i];
-            if (!blk) continue;
-            group.Clear();
-            stack.Clear();
-            int colID = blk.colorID;
-            stack.Push(i);
-            while (stack.Count > 0)
+            int current = stack.Pop();
+            if (visited[current])
+                continue;
+            
+            visited[current] = true;       
+            group.Add(current);           
+
+          
+            foreach (int neighbor in GetNeighbors(current))
             {
-                int cur = stack.Pop();
-                if (group.Contains(cur)) continue;
-                group.Add(cur);
-                foreach (int nb in GetNeighbors(cur))
+                var neighborBlock = boardData.blockGrid[neighbor];
+                if (neighborBlock != null && neighborBlock.colorID == colorID && !visited[neighbor])
                 {
-                    var b = boardData.blockGrid[nb];
-                    if (b && b.colorID == colID && !group.Contains(nb)) stack.Push(nb);
+                    stack.Push(neighbor);
                 }
             }
-            int sz = group.Count;
-            foreach (int x in group)
+        }
+        int groupSize = group.Count;
+        foreach (int indexInGroup in group)
+        {
+            var blockInGroup = boardData.blockGrid[indexInGroup];
+            if (blockInGroup != null)
             {
-                var b = boardData.blockGrid[x];
-                if (b) b.UpdateSpriteBasedOnGroupSize(sz);
+                blockInGroup.UpdateSpriteBasedOnGroupSize(groupSize);
             }
         }
     }
+}
     void CenterCamera()
     {
         var cam = Camera.main;
