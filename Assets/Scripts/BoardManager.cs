@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using System.Collections.Generic;
 using DG.Tweening;
@@ -38,41 +39,122 @@ public class BoardManager : MonoBehaviour
     void OnBlockClicked(BlockBehavior clicked)
     {
         if (!isReady || clicked == null) return;
+
         int? idx = FindBlockIndex(clicked);
         if (!idx.HasValue) return;
         List<int> group = GetConnectedGroup(idx.Value);
+        
         if (group.Count < 2)
         {
             clicked.StartBuzz();
             return;
         }
+
         isReady = false;
-        RemoveGroupSequence(group, () =>
+        
+        if (group.Count >= 4)
         {
-            UpdateBoardSequence(() =>
+            GatherAndRemoveGroupSequence(clicked.transform.position, group, () =>
             {
-                isReady = true;
+                UpdateBoardSequence(() =>
+                {
+                    isReady = true;
+                });
             });
+        }
+        if (group.Count >= 7) CameraShake(boardConfig.shakeDuration, boardConfig.shakeMagnitude);
+        else
+        {
+            
+            RemoveGroupSequence(group, () =>
+            {
+                UpdateBoardSequence(() =>
+                {
+                    isReady = true;
+                });
+            });
+        }
+    }
+    
+    void GatherAndRemoveGroupSequence(Vector2 gatherPoint, List<int> group, Action onComplete)
+    {
+        Sequence seq = DOTween.Sequence();
+        float shineDuration = 0.1f;
+        float gatherDuration = 0.3f;
+        float blastDuration = 0.3f;
+
+        foreach (int i in group)
+        {
+            var block = boardData.blockGrid[i];
+            if (!block) continue;
+            seq.Join(block.transform.DOScale(block.transform.localScale * 1f, shineDuration)
+                .SetLoops(2, LoopType.Yoyo)
+                .SetEase(Ease.InOutQuad));
+            if (block.SpriteRenderer)
+            {
+                Color original = block.SpriteRenderer.color;
+                Color bright = original * 1.5f;
+                seq.Join(block.SpriteRenderer.DOColor(bright, shineDuration)
+                    .SetLoops(2, LoopType.Yoyo)
+                    .SetEase(Ease.InOutQuad));
+            }
+        }
+
+        seq.AppendInterval(0f);
+
+        foreach (int i in group)
+        {
+            var block = boardData.blockGrid[i];
+            if (!block) continue;
+            seq.Join(block.transform.DOMove(gatherPoint, gatherDuration).SetEase(Ease.InQuad));
+            seq.Join(block.transform.DOScale(block.transform.localScale * 0.8f, gatherDuration).SetEase(Ease.OutQuad));
+        }
+
+        seq.AppendInterval(0f);
+
+        foreach (int i in group)
+        {
+            var block = boardData.blockGrid[i];
+            if (!block) continue;
+            seq.Join(block.transform.DOScale(block.transform.localScale * 1.5f, blastDuration));
+            if (block.SpriteRenderer)
+            {
+                seq.Join(block.SpriteRenderer.DOFade(0f, blastDuration));
+            }
+        }
+
+        seq.OnComplete(() =>
+        {
+            foreach (int i in group)
+            {
+                boardGenerator.ReturnBlock(boardData, i);
+            }
+            onComplete?.Invoke();
         });
     }
+    
     void RemoveGroupSequence(List<int> group, System.Action onComplete)
     {
-        if (group.Count >= 7) CameraShake(boardConfig.shakeDuration, boardConfig.shakeMagnitude);
         Sequence removeSeq = DOTween.Sequence();
         foreach (int i in group)
         {
             var block = boardData.blockGrid[i];
             if (!block) continue;
-            Sequence blast = DOTween.Sequence();
-            blast.Join(block.transform.DOScale(block.transform.localScale * 1.5f, 0.3f));
-            if (block.SpriteRenderer) blast.Join(block.SpriteRenderer.DOFade(0f, 0.3f));
-            blast.OnComplete(() =>
+
+            removeSeq.Join(block.transform.DOScale(block.transform.localScale * 1.5f, 0.15f));
+            if (block.SpriteRenderer)
+            {
+                removeSeq.Join(block.SpriteRenderer.DOFade(0f, 0.3f));
+            }
+        }
+        removeSeq.OnComplete(() =>
+        {
+            foreach (int i in group)
             {
                 boardGenerator.ReturnBlock(boardData, i);
-            });
-            removeSeq.Join(blast);
-        }
-        removeSeq.OnComplete(() => onComplete());
+            }
+            onComplete?.Invoke();
+        });
     }
     void UpdateBoardSequence(System.Action onComplete)
     {
