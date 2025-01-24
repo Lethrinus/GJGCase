@@ -55,7 +55,6 @@
     <Compile Include="Assets\Scripts\BoardGenerator.cs" />
     <Compile Include="Assets\Scripts\DeadlockResolver.cs" />
     <Compile Include="Assets\LevelConfig.cs" />
-    <Compile Include="Assets\LevelDatabase.cs" />
     <Compile Include="Assets\Scripts\BoardManagerUI.cs" />
     <Compile Include="Assets\Scripts\BlockPool.cs" />
     <Compile Include="Assets\Scripts\BoardManager.cs" />

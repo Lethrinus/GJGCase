@@ -4,7 +4,8 @@ using UnityEngine;
 public class BoardConfig : ScriptableObject
 {
     [Header("Board Setup")]
-    public float blockSize = 2.3f;
+    public float blockWidth = 2.3f;
+    public float blockHeight = 2.555f;    
     public float moveSpeed = 30f;
 
     [Header("Thresholds")]

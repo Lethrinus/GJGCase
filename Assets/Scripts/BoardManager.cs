@@ -16,7 +16,7 @@ public class BoardManager : MonoBehaviour
     {
         int rows = BoardSettings.Rows;
         int cols = BoardSettings.Columns;
-        boardData.Initialize(rows, cols, boardConfig.blockSize);
+        boardData.Initialize(rows, cols, boardConfig.blockWidth, boardConfig.blockHeight);
         boardGenerator.GenerateBoard(boardData, transform, boardConfig.thresholdA, boardConfig.thresholdB, boardConfig.thresholdC);
         CenterCamera();
         InputHandler ih = FindObjectOfType<InputHandler>();
@@ -320,8 +320,8 @@ for (int c = 0; c < boardData.columns; c++)
     {
         var cam = Camera.main;
         if (!cam) return;
-        float w = (boardData.columns - 1) * boardData.blockSize;
-        float h = (boardData.rows - 1) * boardData.blockSize;
+        float w = (boardData.columns - 1) * boardData.blockWidth;
+        float h = (boardData.rows - 1) * boardData.blockHeight;
         float cx = w * 0.5f;
         float cy = h * 0.5f;
         cam.transform.position = new Vector3(cx, cy, cam.transform.position.z);
