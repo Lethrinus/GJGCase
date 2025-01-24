@@ -62,7 +62,7 @@ public class BoardManager : MonoBehaviour
                 });
             });
         }
-        if (group.Count >= 7) CameraShake(boardConfig.shakeDuration, boardConfig.shakeMagnitude);
+       
         else
         {
             
@@ -79,15 +79,15 @@ public class BoardManager : MonoBehaviour
     void GatherAndRemoveGroupSequence(Vector2 gatherPoint, List<int> group, Action onComplete)
     {
         Sequence seq = DOTween.Sequence();
-        float shineDuration = 0.1f;
-        float gatherDuration = 0.3f;
+        float shineDuration = 0.15f;
+        float gatherDuration = 0.25f;
         float blastDuration = 0.3f;
 
         foreach (int i in group)
         {
             var block = boardData.blockGrid[i];
             if (!block) continue;
-            seq.Join(block.transform.DOScale(block.transform.localScale * 1f, shineDuration)
+            seq.Join(block.transform.DOScale(block.transform.localScale * 1.2f, shineDuration)
                 .SetLoops(2, LoopType.Yoyo)
                 .SetEase(Ease.InOutQuad));
             if (block.SpriteRenderer)
