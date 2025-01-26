@@ -47,6 +47,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Scripts\InputHandler.cs" />
+    <Compile Include="Assets\Scripts\ParticlePool.cs" />
     <Compile Include="Assets\Scripts\BoardSetupUI.cs" />
     <Compile Include="Assets\Scripts\BoardConfig.cs" />
     <Compile Include="Assets\Scripts\BoardData.cs" />

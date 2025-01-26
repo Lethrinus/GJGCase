@@ -1,6 +1,6 @@
 public static class BoardSettings
 {
-    public static int Rows = 5;
+    public static int Rows = 8;
     public static int Columns = 8;
     public const int MinRows = 2;
     public const int MaxRows = 10;

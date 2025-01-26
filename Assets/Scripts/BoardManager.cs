@@ -11,7 +11,9 @@ public class BoardManager : MonoBehaviour
     public BlockPool blockPool;
     public BoardConfig boardConfig;
     bool isReady;
-    
+
+    public Color[] colorMap;
+    public ParticlePool particlePool;
     void Start()
     {
         int rows = BoardSettings.Rows;
@@ -65,21 +67,56 @@ public class BoardManager : MonoBehaviour
        
         else
         {
-            
-            RemoveGroupSequence(group, () =>
+            // 2-3 blokluk grup -> hemen yok ol, sadece partikül efekti
+            RemoveGroupWithParticlePool(group, () =>
             {
-                UpdateBoardSequence(() =>
-                {
-                    isReady = true;
-                });
+                UpdateBoardSequence(() => { isReady = true; });
             });
         }
+    }
+    void RemoveGroupWithParticlePool(List<int> group, Action onComplete)
+    {
+        // Tüm bloklar için anında partikül efektini oluşturup, bloğu havuza iade ediyoruz
+        foreach (int i in group)
+        {
+            var block = boardData.blockGrid[i];
+            if (!block) continue;
+
+            // Renk tespiti
+            Color c = GetColorFromID(block.colorID);
+
+            // Partikül üret
+            // ParticlePool'daki 'GetParticle' ile renklendiriyoruz
+            if (particlePool)
+            {
+                particlePool.GetParticle(block.transform.position, c);
+            }
+
+            // Bloku hemen yok ediyoruz (pool'a iade)
+            boardGenerator.ReturnBlock(boardData, i);
+        }
+
+        onComplete?.Invoke();
+    }
+
+    /// <summary>
+    /// colorMap dizisinden renk alır. colorID indeks dışındaysa 0'a düşürür.
+    /// </summary>
+    Color GetColorFromID(int colorID)
+    {
+        if (colorMap == null || colorMap.Length == 0)
+            return Color.white; // Yedek
+
+        if (colorID < 0 || colorID >= colorMap.Length)
+            colorID = 0;
+
+        return colorMap[colorID];
     }
     
     void GatherAndRemoveGroupSequence(Vector2 gatherPoint, List<int> group, Action onComplete)
     {
         Sequence seq = DOTween.Sequence();
-        float shineDuration = 0.15f;
+        float shineDuration = 0.20f;
         float gatherDuration = 0.25f;
         float blastDuration = 0.3f;
 
@@ -88,14 +125,13 @@ public class BoardManager : MonoBehaviour
             var block = boardData.blockGrid[i];
             if (!block) continue;
             seq.Join(block.transform.DOScale(block.transform.localScale * 1.2f, shineDuration)
-                .SetLoops(2, LoopType.Yoyo)
+                .SetLoops(1, LoopType.Yoyo)
                 .SetEase(Ease.InOutQuad));
             if (block.SpriteRenderer)
             {
                 Color original = block.SpriteRenderer.color;
-                Color bright = original * 1.5f;
-                seq.Join(block.SpriteRenderer.DOColor(bright, shineDuration)
-                    .SetLoops(2, LoopType.Yoyo)
+                seq.Join(block.SpriteRenderer.DOColor(original, shineDuration)
+                    .SetLoops(1, LoopType.Yoyo)
                     .SetEase(Ease.InOutQuad));
             }
         }
