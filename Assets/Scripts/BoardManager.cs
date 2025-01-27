@@ -352,25 +352,29 @@ for (int c = 0; c < boardData.columns; c++)
         }
     }
 }
-    void CenterCamera()
-    {
-        var cam = Camera.main;
-        if (!cam) return;
-        float w = (boardData.columns - 1) * boardData.blockWidth;
-        float h = (boardData.rows - 1) * boardData.blockHeight;
-        float cx = w * 0.5f;
-        float cy = h * 0.5f;
-        cam.transform.position = new Vector3(cx, cy, cam.transform.position.z);
-        float halfW = w * 0.5f;
-        float halfH = h * 0.5f;
-        float ar = Screen.width / (float)Screen.height;
-        float halfCamH;
-        if (halfW / ar > halfH) halfCamH = (halfW / ar);
-        else halfCamH = halfH;
-        float margin = 3f;
-        float zoom = 1.1f;
-        cam.orthographicSize = (halfCamH + margin) * zoom;
-    }
+void CenterCamera()
+{
+    Camera cam = Camera.main;
+    if (!cam) return;
+    
+    float w = (boardData.columns - 1) * boardData.blockWidth;
+    float h = (boardData.rows - 1) * boardData.blockHeight;
+
+    float cx = w * 0.5f;
+    float cy = h * 0.75f;
+    
+    cam.transform.position = new Vector3(cx, cy, cam.transform.position.z);
+    
+    float halfW = w * 0.5f;
+    float halfH = h * 0.5f;
+    float ar = Screen.width / (float)Screen.height;
+    
+    float halfCamH = (halfW / ar > halfH) ? (halfW / ar) : halfH;
+    
+    float margin = 7f;   
+    float zoom = 1.1f;
+    cam.orthographicSize = (halfCamH + margin) * zoom;
+}
     void CameraShake(float dur, float mag)
     {
         var cam = Camera.main;

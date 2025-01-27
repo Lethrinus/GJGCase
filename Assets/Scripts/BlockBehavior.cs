@@ -59,6 +59,6 @@ public class BlockBehavior : MonoBehaviour
     }
     public void SetSortingOrder(int row)
     {
-        if (spriteRenderer) spriteRenderer.sortingOrder = row;
+        if (spriteRenderer) spriteRenderer.sortingOrder = row + 1;
     }
 }
