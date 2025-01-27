@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c538460e18e4b0542916ff54c1e03373, type: 3}
   m_Name: BoardConfig
   m_EditorClassIdentifier: 
-  blockWidth: 2.3
-  blockHeight: 2.555
+  blockWidth: 2.22
+  blockHeight: 2.27
   moveSpeed: 25
   thresholdA: 4
   thresholdB: 7

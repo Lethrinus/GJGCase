@@ -6,13 +6,6 @@ public class BoardSetupUI : MonoBehaviour
 {
     
     public string gameSceneName = "MainScene";
-    void Start(){
-        
-    
-    }
-    void OnDestroy()
-    {
-    }
     
     
     public void OnStartGameButton()

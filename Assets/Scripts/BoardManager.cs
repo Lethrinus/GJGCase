@@ -362,8 +362,8 @@ void CenterCamera()
 
     float cx = w * 0.5f;
     float cy = h * 0.75f;
-    
-    cam.transform.position = new Vector3(cx, cy, cam.transform.position.z);
+    float offsetY = 2f;
+    cam.transform.position = new Vector3(cx, cy + offsetY , cam.transform.position.z);
     
     float halfW = w * 0.5f;
     float halfH = h * 0.5f;
@@ -371,7 +371,7 @@ void CenterCamera()
     
     float halfCamH = (halfW / ar > halfH) ? (halfW / ar) : halfH;
     
-    float margin = 7f;   
+    float margin = 9f;   
     float zoom = 1.1f;
     cam.orthographicSize = (halfCamH + margin) * zoom;
 }
