@@ -9,5 +9,8 @@ public class BoardConfig : ScriptableObject
     public int thresholdA = 4;
     public int thresholdB = 7;
     public int thresholdC = 9;
-    public float shuffleFadeDuration = 0.4f;
+    public float shuffleFadeDuration = 0.8f;
+    public int initialMoves = 20;
+    public int goalBlocks = 40;
+
 }

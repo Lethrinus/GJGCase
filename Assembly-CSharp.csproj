@@ -49,6 +49,7 @@
     <Compile Include="Assets\Scripts\InputHandler.cs" />
     <Compile Include="Assets\Scripts\ParticlePool.cs" />
     <Compile Include="Assets\Scripts\BoardSetupUI.cs" />
+    <Compile Include="Assets\Scripts\GoalMoveUI.cs" />
     <Compile Include="Assets\Scripts\BoardConfig.cs" />
     <Compile Include="Assets\Scripts\ColorPalette.cs" />
     <Compile Include="Assets\Scripts\BoardData.cs" />
@@ -897,11 +898,11 @@
     <Reference Include="Unity.Collections">
       <HintPath>C:\Users\yavuzhan\GJGCase\Library\ScriptAssemblies\Unity.Collections.dll</HintPath>
     </Reference>
-    <Reference Include="PPv2URPConverters">
-      <HintPath>C:\Users\yavuzhan\GJGCase\Library\ScriptAssemblies\PPv2URPConverters.dll</HintPath>
-    </Reference>
     <Reference Include="Nobi.UiRoundedCorners.Editor">
       <HintPath>C:\Users\yavuzhan\GJGCase\Library\ScriptAssemblies\Nobi.UiRoundedCorners.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="PPv2URPConverters">
+      <HintPath>C:\Users\yavuzhan\GJGCase\Library\ScriptAssemblies\PPv2URPConverters.dll</HintPath>
     </Reference>
     <Reference Include="Unity.2D.PixelPerfect.Editor">
       <HintPath>C:\Users\yavuzhan\GJGCase\Library\ScriptAssemblies\Unity.2D.PixelPerfect.Editor.dll</HintPath>
