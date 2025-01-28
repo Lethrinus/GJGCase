@@ -3,25 +3,21 @@ using System.Collections.Generic;
 
 public class ParticlePool : MonoBehaviour
 {
-    [Header("Particle System Prefab")]
-    public ParticleSystem particlePrefab;
+    public ParticleSettings particleSettings;
+    Queue<ParticleSystem> availablePS = new Queue<ParticleSystem>();
+    List<ActivePS> inUsePS = new List<ActivePS>();
 
-    [Header("Particle LifeTime")]
-    public float particleLifeTime = 1.0f;
-   
-    private Queue<ParticleSystem> availablePS = new Queue<ParticleSystem>();
-
-    private List<ActivePS> inUsePS = new List<ActivePS>();
-    private class ActivePS
+    class ActivePS
     {
         public ParticleSystem ps;
         public float returnTime;
     }
-    public ParticleSystem GetParticle(Vector3 position, Color color, float customLifetime = -1f)
+
+    public void SpawnParticle(Vector3 position, Color color)
     {
-        float finalLifetime = (customLifetime > 0f) ? customLifetime : particleLifeTime;
+        if (!particleSettings || !particleSettings.particlePrefab) return;
+        float lifeTime = particleSettings.particleLifeTime;
         ParticleSystem ps;
-        
         if (availablePS.Count > 0)
         {
             ps = availablePS.Dequeue();
@@ -29,7 +25,7 @@ public class ParticlePool : MonoBehaviour
         }
         else
         {
-            ps = Instantiate(particlePrefab, transform);
+            ps = Instantiate(particleSettings.particlePrefab, transform);
         }
         ps.transform.position = position;
         var main = ps.main;
@@ -38,20 +34,19 @@ public class ParticlePool : MonoBehaviour
         inUsePS.Add(new ActivePS
         {
             ps = ps,
-            returnTime = Time.time + finalLifetime
+            returnTime = Time.time + lifeTime
         });
-        return ps;
     }
 
-    private void Update()
+    void Update()
     {
-        float currentTime = Time.time;
+        float now = Time.time;
         for (int i = inUsePS.Count - 1; i >= 0; i--)
         {
-            if (currentTime >= inUsePS[i].returnTime)
+            if (now >= inUsePS[i].returnTime)
             {
                 ParticleSystem ps = inUsePS[i].ps;
-                ps.Stop(); 
+                ps.Stop();
                 ps.gameObject.SetActive(false);
                 availablePS.Enqueue(ps);
                 inUsePS.RemoveAt(i);

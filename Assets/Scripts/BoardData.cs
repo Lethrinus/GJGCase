@@ -5,10 +5,8 @@ public class BoardData
 {
     public int rows;
     public int columns;
-    
     public float blockWidth = 2.3f;
     public float blockHeight = 2.3f;
-
     public BlockBehavior[] blockGrid;
 
     public void Initialize(int r, int c, float width, float height)

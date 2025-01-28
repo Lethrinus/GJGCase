@@ -9,15 +9,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c538460e18e4b0542916ff54c1e03373, type: 3}
-  m_Name: BoardConfig
+  m_Script: {fileID: 11500000, guid: 9c6c1219c5fc713429bff294befd51ec, type: 3}
+  m_Name: ParticleSettings
   m_EditorClassIdentifier: 
-  blockWidth: 2.22
-  blockHeight: 2.27
-  moveSpeed: 25
-  thresholdA: 4
-  thresholdB: 7
-  thresholdC: 9
-  shuffleFadeDuration: 0.6
-  shakeDuration: 0.36
-  shakeMagnitude: 0.24
+  particlePrefab: {fileID: 6901581548188474935, guid: 165af1437d6c91f47b488cc2a4e4b65f, type: 3}
+  particleLifeTime: 1

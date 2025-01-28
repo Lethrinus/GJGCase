@@ -4,6 +4,7 @@ using System;
 public class InputHandler : MonoBehaviour
 {
     public event Action<BlockBehavior> OnBlockClicked;
+
     void Update()
     {
         if (Input.GetMouseButtonDown(0) && Camera.main)
