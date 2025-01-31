@@ -8,19 +8,31 @@ public class BoardData
     public float blockWidth = 2.3f;
     public float blockHeight = 2.3f;
     public BlockBehavior[] blockGrid;
+    public bool[] cellMask;  // from BoardConfig
 
-    public void Initialize(int r, int c, float width, float height)
+    public void Initialize(int r, int c, float width, float height, bool[] mask = null)
     {
         rows = r;
         columns = c;
         blockWidth = width;
         blockHeight = height;
         blockGrid = new BlockBehavior[rows * columns];
+        cellMask = mask;
     }
 
     public int GetIndex(int row, int col)
     {
         return row * columns + col;
+    }
+
+    public bool IsValidCell(int row, int col)
+    {
+        // If no mask, everything is valid
+        if (cellMask == null || cellMask.Length == 0) return true;
+        
+        int index = GetIndex(row, col);
+        if (index < 0 || index >= cellMask.Length) return false;
+        return cellMask[index];
     }
 
     public Vector2 GetBlockPosition(int row, int col)

@@ -7,7 +7,7 @@ public class GoalMoveUI : MonoBehaviour
     public TMP_Text moveText;
     public BoardManager boardManager;
 
-    void Update()
+    private void Update()
     {
         if (!boardManager) return;
         moveText.text = boardManager.GetMovesLeft().ToString();

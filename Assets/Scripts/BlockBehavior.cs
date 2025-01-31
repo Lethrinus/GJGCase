@@ -27,6 +27,7 @@ public class BlockBehavior : MonoBehaviour
     {
         if (hoverTween != null && hoverTween.IsActive()) hoverTween.Kill();
         hoverTween = transform.DOScale(originalScale * 1.1f, 0.15f).SetEase(Ease.OutQuad);
+        
     }
 
     void OnMouseExit()

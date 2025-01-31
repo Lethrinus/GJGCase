@@ -53,8 +53,8 @@
     <Compile Include="Assets\Scripts\BoardConfig.cs" />
     <Compile Include="Assets\Scripts\ColorPalette.cs" />
     <Compile Include="Assets\Scripts\BoardData.cs" />
-    <Compile Include="Assets\Scripts\BoardSettings.cs" />
     <Compile Include="Assets\Scripts\BlockBehavior.cs" />
+    <Compile Include="Assets\Scripts\BoardConfig2.cs" />
     <Compile Include="Assets\Scripts\ParticleSettings.cs" />
     <Compile Include="Assets\Scripts\BoardGenerator.cs" />
     <Compile Include="Assets\Scripts\DeadlockResolver.cs" />

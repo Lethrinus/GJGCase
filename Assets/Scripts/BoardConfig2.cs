@@ -1,7 +1,7 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "BoardConfig", menuName = "ScriptableObjects/BoardConfig", order = 1)]
-public class BoardConfig : ScriptableObject
+[CreateAssetMenu(fileName = "BoardConfigForLevel2", menuName = "ScriptableObjects/BoardConfigForLevel2", order = 2)]
+public class BoardConfigForLevel2 : ScriptableObject
 {
     [Header("Basic Board Settings")]
     public float blockWidth = 2.3f;
@@ -20,9 +20,8 @@ public class BoardConfig : ScriptableObject
     [Tooltip("If true, uses cellMask to determine which cells are valid.")]
     public bool useShapeMask = false;
     [Tooltip("Must have length == rows * columns if useShapeMask = true.")]
-    public bool[] cellMask;
+    public bool[] cellMask;  
 
     [Header("Background / Frame Art")] 
-    public GameObject environmentPrefab;    
-   
+    public GameObject environmentPrefab;
 }
