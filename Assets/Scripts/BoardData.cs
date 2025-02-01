@@ -8,7 +8,7 @@ public class BoardData
     public float blockWidth = 2.3f;
     public float blockHeight = 2.3f;
     public BlockBehavior[] blockGrid;
-    public bool[] cellMask;  // from BoardConfig
+    public bool[] cellMask; 
 
     public void Initialize(int r, int c, float width, float height, bool[] mask = null)
     {
@@ -27,7 +27,6 @@ public class BoardData
 
     public bool IsValidCell(int row, int col)
     {
-        // If no mask, everything is valid
         if (cellMask == null || cellMask.Length == 0) return true;
         
         int index = GetIndex(row, col);

@@ -15,7 +15,7 @@ public class BoardGenerator : MonoBehaviour
             {
                 if (!data.IsValidCell(r, c)) continue;
 
-                int index = UnityEngine.Random.Range(0, blockPool.blockPrefabs.Length);
+                int index = Random.Range(0, blockPool.blockPrefabs.Length);
                 Vector2 pos = data.GetBlockPosition(r, c);
                 var block = blockPool.GetBlock(index, pos, parent);
                 if (!block) continue;
@@ -37,7 +37,7 @@ public class BoardGenerator : MonoBehaviour
         if (!blockPool) return null;
         if (!data.IsValidCell(row, col)) return null;
 
-        int index = UnityEngine.Random.Range(0, blockPool.blockPrefabs.Length);
+        int index = Random.Range(0, blockPool.blockPrefabs.Length);
         Vector2 abovePos = data.GetBlockPosition(-1, col);
         var block = blockPool.GetBlock(index, abovePos, parent);
         if (block)

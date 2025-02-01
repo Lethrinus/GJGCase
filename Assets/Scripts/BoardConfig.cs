@@ -12,11 +12,18 @@ public class BoardConfig : ScriptableObject
     public int thresholdC = 9;
     public float shuffleFadeDuration = 0.8f;
     public int initialMoves = 20;
-
+    
+    
+    
     [Header("Goal Settings")]
     [Tooltip("Target number of blocks to clear (for levels 1 and 2)")]
     public int targetBlockGoal = 40;
-
+    
+    [Header("Goal Settings - Multi Icons")]
+    public Sprite crateIcon;     
+    public int crateGoalCount; 
+    
+    
     [Tooltip("Target block color ID for block-based goals (for levels 1 and 2)")]
     public int targetBlockColorID = 0;
 

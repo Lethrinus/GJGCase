@@ -19,13 +19,13 @@ public class BoardManager : MonoBehaviour
     public CrateBehavior cratePrefab;
 
     // Dictionary tracking cells reserved for crates
-    private Dictionary<int, CrateBehavior> crateGrid = new();
+    private readonly Dictionary<int, CrateBehavior> _crateGrid = new();
     
     // Gameplay counters
     private int _movesLeft;
     private int _blocksDestroyed;
-    private int _targetBlocksDestroyed;   // For levels 1 & 2 (color-based goal)
-    private int _targetCratesDestroyed;     // For level 3 (crate-based goal)
+    private int _targetBlocksDestroyed; 
+    private int _targetCratesDestroyed; 
     private bool _isReady;
     
     //DOTween setup
@@ -43,8 +43,7 @@ public class BoardManager : MonoBehaviour
         {
             Debug.LogWarning("No BoardConfig found. Using default config.");
         }
-
-        // 1) If there's an environment prefab, spawn it.
+        
         if (boardConfig.environmentPrefab != null)
         {
             GameObject envInstance = Instantiate(
@@ -61,8 +60,6 @@ public class BoardManager : MonoBehaviour
                 environmentParent ? environmentParent : transform
             );
             uiCanvasInstance.name = boardConfig.uiCanvasPrefab.name;
-
-            // Hook up references if needed
             GoalMoveUI gmUI = uiCanvasInstance.goalMoveUI;
             if (gmUI != null)
             {
@@ -194,7 +191,7 @@ public class BoardManager : MonoBehaviour
                     boardGenerator.ReturnBlock(boardData, index);
                 CrateBehavior crate = Instantiate(cratePrefab, transform);
                 crate.transform.localPosition = pos;
-                crateGrid[index] = crate;
+                _crateGrid[index] = crate;
             }
         }
     }
@@ -206,7 +203,7 @@ public class BoardManager : MonoBehaviour
         {
             foreach (int neighbor in GetNeighbors(cellIndex))
             {
-                if (crateGrid.ContainsKey(neighbor))
+                if (_crateGrid.ContainsKey(neighbor))
                     cratesToBlast.Add(neighbor);
             }
         }
@@ -220,12 +217,12 @@ public class BoardManager : MonoBehaviour
     
         foreach (int crateIndex in cratesToBlast)
         {
-            if (crateGrid.TryGetValue(crateIndex, out CrateBehavior crate))
+            if (_crateGrid.TryGetValue(crateIndex, out CrateBehavior crate))
             {
                 crate.Blast(() =>
                 {
                     
-                    crateGrid.Remove(crateIndex);
+                    _crateGrid.Remove(crateIndex);
                     _targetCratesDestroyed++;
                     remaining--;
                     if (remaining <= 0)
@@ -252,7 +249,7 @@ public class BoardManager : MonoBehaviour
             for (int row = boardData.rows - 1; row >= 0; row--)
             {
                 int cellIndex = boardData.GetIndex(row, col);
-                if (boardData.IsValidCell(row, col) && (!boardConfig.useCrates || !crateGrid.ContainsKey(cellIndex)))
+                if (boardData.IsValidCell(row, col) && (!boardConfig.useCrates || !_crateGrid.ContainsKey(cellIndex)))
                     validRows.Add(row);
             }
 
@@ -328,21 +325,21 @@ public class BoardManager : MonoBehaviour
 
     private void ResolveDeadlockSequence(Action onComplete)
     {
+        
         if (boardConfig.useCrates)
         {
-            HashSet<int> reservedIndices = new HashSet<int>(crateGrid.Keys);
-            deadlockResolver.ResolveDeadlockFullRefill(boardData, transform, boardConfig.shuffleFadeDuration,
-                boardConfig.thresholdA, boardConfig.thresholdB, boardConfig.thresholdC,
-                onComplete, reservedIndices);
+            HashSet<int> reservedIndices = new HashSet<int>(_crateGrid.Keys);
+            deadlockResolver.ResolveDeadlockFullRefill(boardData, transform, boardConfig.shuffleFadeDuration, boardConfig.thresholdA, boardConfig.thresholdB, boardConfig.thresholdC, () => { UpdateAllBlockSprites(); onComplete?.Invoke();},
+                reservedIndices
+            );
         }
         else
         {
-            deadlockResolver.ResolveDeadlockFullRefill(boardData, transform, boardConfig.shuffleFadeDuration,
-                boardConfig.thresholdA, boardConfig.thresholdB, boardConfig.thresholdC,
-                onComplete);
+            deadlockResolver.ResolveDeadlockFullRefill(boardData, transform, boardConfig.shuffleFadeDuration, boardConfig.thresholdA, boardConfig.thresholdB, boardConfig.thresholdC, () =>
+                { UpdateAllBlockSprites(); onComplete?.Invoke(); }
+            );
         }
     }
-
 
     private int? FindBlockIndex(BlockBehavior block)
     {

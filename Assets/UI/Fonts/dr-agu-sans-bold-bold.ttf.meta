@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: c68eefc1dbaf24e4c8a0476564329ea6
+guid: 56676207debd0ab418a46b28ae8cf592
 TrueTypeFontImporter:
   externalObjects: {}
   serializedVersion: 4
@@ -9,7 +9,7 @@ TrueTypeFontImporter:
   characterPadding: 1
   includeFontData: 1
   fontNames:
-  - Mabook
+  - DRAguSans-Bold
   fallbackFontReferences: []
   customCharacters: 
   fontRenderingMode: 0

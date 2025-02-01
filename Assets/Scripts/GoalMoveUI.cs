@@ -1,8 +1,12 @@
 using UnityEngine;
 using TMPro;
+using UnityEngine.UI;
 
 public class GoalMoveUI : MonoBehaviour
 {
+    [Header("Crate UI")]
+    [SerializeField] private SpriteRenderer crateIconImage;    
+    
     [Header("UI References")]
     [SerializeField] private TMP_Text goalText;  
     [SerializeField] private TMP_Text movesText;
@@ -10,6 +14,15 @@ public class GoalMoveUI : MonoBehaviour
    
     [HideInInspector] public BoardManager boardManager;
     [HideInInspector] public BoardConfig boardConfig;
+    
+    private void Start()
+    {
+        if (boardConfig != null)
+        {
+            if (crateIconImage != null && boardConfig.crateIcon != null)
+                crateIconImage.sprite = boardConfig.crateIcon;
+        }
+    }
 
     private void Update()
     {
