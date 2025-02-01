@@ -12,25 +12,30 @@ public class BlockBehavior : MonoBehaviour
     public int thresholdB;
     public int thresholdC;
     public int prefabIndex;
-    [SerializeField] SpriteRenderer spriteRenderer;
-    Vector3 originalScale;
-    Tween hoverTween;
+    
+    // Assign this in the Inspector.
+    [SerializeField] private SpriteRenderer spriteRenderer;
     public SpriteRenderer SpriteRenderer => spriteRenderer;
 
-    void Awake()
+    private Vector3 originalScale;
+    private Tween hoverTween;
+
+    private void Awake()
     {
-        if (!spriteRenderer) spriteRenderer = GetComponent<SpriteRenderer>();
+        if (spriteRenderer == null)
+        {
+            Debug.LogError("BlockBehavior: SpriteRenderer not assigned!");
+        }
         originalScale = transform.localScale;
     }
 
-    void OnMouseEnter()
+    private void OnMouseEnter()
     {
         if (hoverTween != null && hoverTween.IsActive()) hoverTween.Kill();
         hoverTween = transform.DOScale(originalScale * 1.1f, 0.15f).SetEase(Ease.OutQuad);
-        
     }
 
-    void OnMouseExit()
+    private void OnMouseExit()
     {
         if (hoverTween != null && hoverTween.IsActive()) hoverTween.Kill();
         hoverTween = transform.DOScale(originalScale, 0.1f).SetEase(Ease.OutQuad);
@@ -56,7 +61,7 @@ public class BlockBehavior : MonoBehaviour
         if (spriteRenderer && defaultSprite) spriteRenderer.sprite = defaultSprite;
         if (spriteRenderer)
         {
-            var c = spriteRenderer.color;
+            Color c = spriteRenderer.color;
             c.a = 1f;
             spriteRenderer.color = c;
         }

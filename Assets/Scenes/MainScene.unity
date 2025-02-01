@@ -1395,6 +1395,8 @@ MonoBehaviour:
   colorPalette: {fileID: 11400000, guid: 1ebd4a2b9e15bdd40a764109ac834b21, type: 2}
   particlePool: {fileID: 823337856}
   environmentParent: {fileID: 0}
+  inputHandler: {fileID: 759300684}
+  cratePrefab: {fileID: 3009956832641950910, guid: 94d33a5ce8ae2ba4ea7a3b5891636813, type: 3}
 --- !u!4 &1952991127
 Transform:
   m_ObjectHideFlags: 0

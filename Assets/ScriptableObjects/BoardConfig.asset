@@ -25,4 +25,5 @@ MonoBehaviour:
   columns: 8
   useShapeMask: 0
   cellMask: 
+  useCrates: 0
   environmentPrefab: {fileID: 952670970950886098, guid: aecc23221ec7e9147bc09a9591ee7fc5, type: 3}

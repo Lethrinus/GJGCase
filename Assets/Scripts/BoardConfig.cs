@@ -21,6 +21,9 @@ public class BoardConfig : ScriptableObject
     public bool useShapeMask = false;
     [Tooltip("Must have length == rows * columns if useShapeMask = true.")]
     public bool[] cellMask;
+    
+    [Header("Crate Settings")]
+    public bool useCrates = false;
 
     [Header("Background / Frame Art")] 
     public GameObject environmentPrefab;    
