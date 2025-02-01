@@ -12,20 +12,31 @@ public class BoardConfig : ScriptableObject
     public int thresholdC = 9;
     public float shuffleFadeDuration = 0.8f;
     public int initialMoves = 20;
-    public int goalBlocks = 40;
+
+    [Header("Goal Settings")]
+    [Tooltip("Target number of blocks to clear (for levels 1 and 2)")]
+    public int targetBlockGoal = 40;
+
+    [Tooltip("Target block color ID for block-based goals (for levels 1 and 2)")]
+    public int targetBlockColorID = 0;
+
+    [Tooltip("Target number of crates to clear (for level 3)")]
+    public int targetCrateGoal = 10;
 
     [Header("Board Shape")]
     public int rows = 8;
     public int columns = 8;
     [Tooltip("If true, uses cellMask to determine which cells are valid.")]
     public bool useShapeMask = false;
-    [Tooltip("Must have length == rows * columns if useShapeMask = true.")]
+    [Tooltip("Must have length == rows * columns if useShapeMask is true.")]
     public bool[] cellMask;
-    
+
     [Header("Crate Settings")]
+    [Tooltip("If true, crates will be used (for example, on level 3).")]
     public bool useCrates = false;
 
-    [Header("Background / Frame Art")] 
-    public GameObject environmentPrefab;    
-   
+    [Header("Art & Environment")]
+    public GameObject environmentPrefab;
+    [Header("UI")]
+    public CanvasRoot uiCanvasPrefab;
 }

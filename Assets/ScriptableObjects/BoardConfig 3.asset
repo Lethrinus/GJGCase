@@ -19,11 +19,14 @@ MonoBehaviour:
   thresholdB: 7
   thresholdC: 9
   shuffleFadeDuration: 0.8
-  initialMoves: 20
-  goalBlocks: 40
+  initialMoves: 50
+  targetBlockGoal: 0
+  targetBlockColorID: 0
+  targetCrateGoal: 24
   rows: 8
   columns: 8
   useShapeMask: 0
   cellMask: 
   useCrates: 1
   environmentPrefab: {fileID: 4184734785730576343, guid: 9d116179eae3f5641a495b266f6f7f70, type: 3}
+  uiCanvasPrefab: {fileID: 8500651786189651655, guid: 2490ba9f97e9d74439d7e489f873694e, type: 3}

@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 90c2c58e764f5484aa8c0a104170d1eb
+guid: cb9f8b4dad5402e4b9e76378569c99e6
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -4179803228344955605
-    second: output-onlinepngtools (10)_0
+      213: 6622904741294205931
+    second: frame2 kopya_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: output-onlinepngtools (10)_0
+      name: frame2 kopya_0
       rect:
         serializedVersion: 2
-        x: 44
-        y: 45
-        width: 411
-        height: 411
+        x: 87
+        y: 88
+        width: 826
+        height: 826
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: b2dc77ffb1b5ef5c0800000000000000
-      internalID: -4179803228344955605
+      spriteID: beb6716c5c849eb50800000000000000
+      internalID: 6622904741294205931
       vertices: []
       indices: 
       edges: []

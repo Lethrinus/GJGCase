@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using DG.Tweening;
 
@@ -27,6 +28,14 @@ public class BlockBehavior : MonoBehaviour
             Debug.LogError("BlockBehavior: SpriteRenderer not assigned!");
         }
         originalScale = transform.localScale;
+    }
+
+    private void OnDestroy()
+    {
+        if (transform != null)
+        {
+            transform.DOKill(true);
+        }
     }
 
     private void OnMouseEnter()
