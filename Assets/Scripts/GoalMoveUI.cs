@@ -6,6 +6,7 @@ public class GoalMoveUI : MonoBehaviour
 {
     [Header("Crate UI")]
     [SerializeField] private SpriteRenderer crateIconImage;    
+    [SerializeField] private SpriteRenderer targetIconImage;
     
     [Header("UI References")]
     [SerializeField] private TMP_Text goalText;  
@@ -21,7 +22,10 @@ public class GoalMoveUI : MonoBehaviour
         {
             if (crateIconImage != null && boardConfig.crateIcon != null)
                 crateIconImage.sprite = boardConfig.crateIcon;
+            if (targetIconImage != null && boardConfig.targetIcon != null)
+                targetIconImage.sprite = boardConfig.targetIcon;
         }
+        
     }
 
     private void Update()
@@ -35,7 +39,7 @@ public class GoalMoveUI : MonoBehaviour
         }
         else
         {
-            int remainingBlocks = Mathf.Max(0, boardConfig.targetBlockGoal - boardManager.GetBlocksDestroyed());
+            int remainingBlocks = Mathf.Max(0, boardConfig.targetBlockGoal - boardManager.GetTargetBlocksDestroyed());
             goalText.text = remainingBlocks.ToString();
         }
     }

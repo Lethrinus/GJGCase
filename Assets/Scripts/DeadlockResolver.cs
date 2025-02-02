@@ -35,113 +35,99 @@ public class DeadlockResolver : MonoBehaviour
         return true;
     }
 
-  public void ResolveDeadlockFullRefill(
-    BoardData data, 
-    Transform parent, 
-    float fadeDuration, 
-    int thresholdA, 
-    int thresholdB, 
-    int thresholdC, 
-    Action onComplete,
-    HashSet<int> reservedIndices = null)  // new optional parameter
-{
-    // Fade out current block sprites.
-    Sequence fadeOutSeq = DOTween.Sequence();
-    List<SpriteRenderer> spriteList = new List<SpriteRenderer>();
-    for (int i = 0; i < data.blockGrid.Length; i++)
-    {
-        var block = data.blockGrid[i];
-        if (block != null && block.SpriteRenderer != null)
-            spriteList.Add(block.SpriteRenderer);
-    }
-    foreach (var sr in spriteList)
-    {
-        fadeOutSeq.Join(sr.DOFade(0f, fadeDuration));
-    }
-    
-    fadeOutSeq.OnComplete(() =>
-    {
-        // Only collect valid indices for cells that are both valid and not reserved.
-        List<int> validIndices = new List<int>();
-        List<int> colorIDs = new List<int>();
-        
+  public void ResolveDeadlockFullRefill(BoardData data, Transform parent, float fadeDuration, int thresholdA, int thresholdB, int thresholdC, Action onComplete, HashSet<int> reservedIndices = null) {
+      Sequence fadeOutSeq = DOTween.Sequence(); 
+      List<SpriteRenderer> spriteList = new List<SpriteRenderer>();
         for (int i = 0; i < data.blockGrid.Length; i++)
-        {
-            int row = i / data.columns;
-            int col = i % data.columns;
-            
-            // If the cell is valid AND it is not reserved for a crate.
-            if (data.IsValidCell(row, col) && (reservedIndices == null || !reservedIndices.Contains(i)))
-            {
-                validIndices.Add(i);
-                var oldBlock = data.blockGrid[i];
-                if (oldBlock != null)
-                {
-                    colorIDs.Add(oldBlock.colorID);
-                }
-            }
-        }
-        
-        // Return all existing blocks to the pool.
-        for (int i = 0; i < data.blockGrid.Length; i++)
-        {
-            var oldBlock = data.blockGrid[i];
-            if (oldBlock != null)
-            {
-                // Return the block to the pool.
-                // (Assuming blockPool is available in this context; adjust if needed)
-                // You might want to pass blockPool as a parameter or make it a field.
-                // For this example, we assume it's accessible.
-                blockPool.ReturnBlock(oldBlock, oldBlock.prefabIndex);
-                data.blockGrid[i] = null;
-            }
-        }
-        
-        // Shuffle the colorIDs list.
-        Shuffle(colorIDs);
-        
-        // Refill only the valid cells (which are not reserved).
-        for (int j = 0; j < validIndices.Count; j++)
-        {
-            int i = validIndices[j];
-            int row = i / data.columns;
-            int col = i % data.columns;
-            Vector2 pos = data.GetBlockPosition(row, col);
-            
-            // Use the stored color ID if available; if not, choose a random one.
-            int colorId = (j < colorIDs.Count) ? colorIDs[j] : UnityEngine.Random.Range(0, blockPool.blockPrefabs.Length);
-            
-            var newBlock = blockPool.GetBlock(colorId, pos, parent);
-            data.blockGrid[i] = newBlock;
-            newBlock.prefabIndex = colorId;
-            newBlock.colorID = colorId;
-            newBlock.thresholdA = thresholdA;
-            newBlock.thresholdB = thresholdB;
-            newBlock.thresholdC = thresholdC;
-            newBlock.ResetBlock();
-            newBlock.SetSortingOrder(row);
-            
-            if (newBlock.SpriteRenderer != null)
-            {
-                Color c = newBlock.SpriteRenderer.color;
-                c.a = 0f;
-                newBlock.SpriteRenderer.color = c;
-            }
-        }
-        
-        // Fade in the new blocks.
-        Sequence fadeInSeq = DOTween.Sequence();
-        foreach (int i in validIndices)
         {
             var block = data.blockGrid[i];
             if (block != null && block.SpriteRenderer != null)
-            {
-                fadeInSeq.Join(block.SpriteRenderer.DOFade(1f, fadeDuration));
-            }
+                spriteList.Add(block.SpriteRenderer);
         }
+        foreach (var sr in spriteList)
+        {
+            fadeOutSeq.Join(sr.DOFade(0f, fadeDuration));
+        }
+    
+        fadeOutSeq.OnComplete(() =>
+        {
+       
+            List<int> validIndices = new List<int>();
+            List<int> colorIDs = new List<int>();
         
-        fadeInSeq.OnComplete(() => { onComplete?.Invoke(); });
-    });
+            for (int i = 0; i < data.blockGrid.Length; i++)
+            {
+                int row = i / data.columns;
+                int col = i % data.columns;
+            
+           
+                if (data.IsValidCell(row, col) && (reservedIndices == null || !reservedIndices.Contains(i)))
+                {
+                    validIndices.Add(i);
+                    var oldBlock = data.blockGrid[i];
+                    if (oldBlock != null)
+                    {
+                        colorIDs.Add(oldBlock.colorID);
+                    }
+                }
+            }
+        
+        
+            for (int i = 0; i < data.blockGrid.Length; i++)
+            {
+                var oldBlock = data.blockGrid[i];
+                if (oldBlock != null)
+                {
+                
+                    blockPool.ReturnBlock(oldBlock, oldBlock.prefabIndex);
+                    data.blockGrid[i] = null;
+                }
+            }
+        
+        
+            Shuffle(colorIDs);
+        
+            for (int j = 0; j < validIndices.Count; j++)
+            {
+                int i = validIndices[j];
+                int row = i / data.columns;
+                int col = i % data.columns;
+                Vector2 pos = data.GetBlockPosition(row, col);
+            
+          
+                int colorId = (j < colorIDs.Count) ? colorIDs[j] : UnityEngine.Random.Range(0, blockPool.blockPrefabs.Length);
+            
+                var newBlock = blockPool.GetBlock(colorId, pos, parent);
+                data.blockGrid[i] = newBlock;
+                newBlock.prefabIndex = colorId;
+                newBlock.colorID = colorId;
+                newBlock.thresholdA = thresholdA;
+                newBlock.thresholdB = thresholdB;
+                newBlock.thresholdC = thresholdC;
+                newBlock.ResetBlock();
+                newBlock.SetSortingOrder(row);
+            
+                if (newBlock.SpriteRenderer != null)
+                {
+                    Color c = newBlock.SpriteRenderer.color;
+                    c.a = 0f;
+                    newBlock.SpriteRenderer.color = c;
+                }
+            }
+        
+      
+            Sequence fadeInSeq = DOTween.Sequence();
+            foreach (int i in validIndices)
+            {
+                var block = data.blockGrid[i];
+                if (block != null && block.SpriteRenderer != null)
+                {
+                    fadeInSeq.Join(block.SpriteRenderer.DOFade(1f, fadeDuration));
+                }
+            }
+        
+            fadeInSeq.OnComplete(() => { onComplete?.Invoke(); });
+        });
 }
 
     void Shuffle<T>(List<T> list)

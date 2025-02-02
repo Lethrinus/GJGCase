@@ -3,17 +3,17 @@ using UnityEngine.SceneManagement;
 
 public class BoardSetupUI : MonoBehaviour
 {
-    public BoardConfig[] levels; // set in inspector
+    public BoardConfig[] levels; 
     public string gameSceneName = "MainScene";
 
     public void LoadLevel(int levelIndex)
     {
-        LevelTracker.SelectedConfig = levels[levelIndex];
+        LevelTracker.selectedConfig = levels[levelIndex];
         SceneManager.LoadScene(gameSceneName);
     }
 }
 
 public static class LevelTracker
 {
-    public static BoardConfig SelectedConfig;
+    public static BoardConfig selectedConfig;
 }

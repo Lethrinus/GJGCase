@@ -21,8 +21,10 @@ MonoBehaviour:
   shuffleFadeDuration: 0.6
   initialMoves: 100
   targetBlockGoal: 30
-  targetBlockColorID: 3
-  targetCrateGoal: 10
+  crateIcon: {fileID: 0}
+  targetIcon: {fileID: 742919511911846744, guid: 94660564427c9364d9732e50d29f1680, type: 3}
+  targetBlockColorID: 2
+  targetCrateGoal: 0
   rows: 8
   columns: 8
   useShapeMask: 0

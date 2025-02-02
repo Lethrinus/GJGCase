@@ -20,9 +20,11 @@ MonoBehaviour:
   thresholdC: 8
   shuffleFadeDuration: 0.6
   initialMoves: 50
-  targetBlockGoal: 40
-  targetBlockColorID: 0
-  targetCrateGoal: 10
+  targetBlockGoal: 30
+  crateIcon: {fileID: 0}
+  targetIcon: {fileID: -7364823422338184377, guid: e67a3679d1e53db428ebaa0e9fb9affa, type: 3}
+  targetBlockColorID: 1
+  targetCrateGoal: 25
   rows: 9
   columns: 9
   useShapeMask: 1

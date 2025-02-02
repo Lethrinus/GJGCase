@@ -38,7 +38,7 @@ public class BoardManager : MonoBehaviour
     }
     private void Start()
     {
-        boardConfig = LevelTracker.SelectedConfig;
+        boardConfig = LevelTracker.selectedConfig;
         if (boardConfig == null)
         {
             Debug.LogWarning("No BoardConfig found. Using default config.");
@@ -461,8 +461,8 @@ public class BoardManager : MonoBehaviour
     private void GatherAndRemoveGroupSequence(Vector2 gatherPoint, List<int> group, Action onComplete)
     {
         Sequence seq = DOTween.Sequence();
-        float shineDuration = 0.2f;
-        float gatherDuration = 0.25f;
+        float shineDuration = 0.15f;
+        float gatherDuration = 0.15f;
         float blastDuration = 0.3f;
         
         foreach (int i in group)

@@ -22,7 +22,7 @@ MonoBehaviour:
   initialMoves: 50
   targetBlockGoal: 0
   crateIcon: {fileID: -1163504838602118676, guid: 81cf39465916f9a44bf7f5a5f56d91fa, type: 3}
-  crateGoalCount: 24
+  targetIcon: {fileID: 0}
   targetBlockColorID: 0
   targetCrateGoal: 24
   rows: 8

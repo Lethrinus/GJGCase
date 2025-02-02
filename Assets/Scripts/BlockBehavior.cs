@@ -14,12 +14,11 @@ public class BlockBehavior : MonoBehaviour
     public int thresholdC;
     public int prefabIndex;
     
-    // Assign this in the Inspector.
     [SerializeField] private SpriteRenderer spriteRenderer;
     public SpriteRenderer SpriteRenderer => spriteRenderer;
 
-    private Vector3 originalScale;
-    private Tween hoverTween;
+    private Vector3 _originalScale;
+    private Tween _hoverTween;
 
     private void Awake()
     {
@@ -27,7 +26,7 @@ public class BlockBehavior : MonoBehaviour
         {
             Debug.LogError("BlockBehavior: SpriteRenderer not assigned!");
         }
-        originalScale = transform.localScale;
+        _originalScale = transform.localScale;
     }
 
     private void OnDestroy()
@@ -40,14 +39,14 @@ public class BlockBehavior : MonoBehaviour
 
     private void OnMouseEnter()
     {
-        if (hoverTween != null && hoverTween.IsActive()) hoverTween.Kill();
-        hoverTween = transform.DOScale(originalScale * 1.1f, 0.15f).SetEase(Ease.OutQuad);
+        if (_hoverTween != null && _hoverTween.IsActive()) _hoverTween.Kill();
+        _hoverTween = transform.DOScale(_originalScale * 1.1f, 0.15f).SetEase(Ease.OutQuad);
     }
 
     private void OnMouseExit()
     {
-        if (hoverTween != null && hoverTween.IsActive()) hoverTween.Kill();
-        hoverTween = transform.DOScale(originalScale, 0.1f).SetEase(Ease.OutQuad);
+        if (_hoverTween != null && _hoverTween.IsActive()) _hoverTween.Kill();
+        _hoverTween = transform.DOScale(_originalScale, 0.1f).SetEase(Ease.OutQuad);
     }
 
     public void UpdateSpriteBasedOnGroupSize(int size)
@@ -60,13 +59,13 @@ public class BlockBehavior : MonoBehaviour
 
     public void StartBuzz(float duration = 0.5f, float scaleAmplitude = 0.03f)
     {
-        if (hoverTween != null && hoverTween.IsActive()) hoverTween.Kill();
-        transform.DOPunchScale(Vector3.one * scaleAmplitude, duration, 10, 1).OnComplete(() => transform.localScale = originalScale);
+        if (_hoverTween != null && _hoverTween.IsActive()) _hoverTween.Kill();
+        transform.DOPunchScale(Vector3.one * scaleAmplitude, duration).OnComplete(() => transform.localScale = _originalScale);
     }
 
     public void ResetBlock()
     {
-        transform.localScale = originalScale;
+        transform.localScale = _originalScale;
         if (spriteRenderer && defaultSprite) spriteRenderer.sprite = defaultSprite;
         if (spriteRenderer)
         {

@@ -5,14 +5,13 @@ public class BlockPool : MonoBehaviour
 {
     public BlockBehavior[] blockPrefabs;
 
-    private Dictionary<int, Queue<BlockBehavior>> pool = new Dictionary<int, Queue<BlockBehavior>>();
+    private readonly Dictionary<int, Queue<BlockBehavior>> _pool = new();
 
-    void Awake()
+    private void Awake()
     {
-        // Each prefab index gets its own queue
         for (int i = 0; i < blockPrefabs.Length; i++)
         {
-            pool[i] = new Queue<BlockBehavior>();
+            _pool[i] = new Queue<BlockBehavior>();
         }
     }
 
@@ -20,11 +19,10 @@ public class BlockPool : MonoBehaviour
     {
         if (index < 0 || index >= blockPrefabs.Length) index = 0;
         BlockBehavior block;
-
-        // Reuse or Instantiate
-        if (pool[index].Count > 0)
+        
+        if (_pool[index].Count > 0)
         {
-            block = pool[index].Dequeue();
+            block = _pool[index].Dequeue();
             block.gameObject.SetActive(true);
         }
         else
@@ -45,10 +43,9 @@ public class BlockPool : MonoBehaviour
             Destroy(block.gameObject);
             return;
         }
-
-        // Make inactive and add back to the queue
+        
         block.gameObject.SetActive(false);
         block.transform.SetParent(transform);
-        pool[index].Enqueue(block);
+        _pool[index].Enqueue(block);
     }
 }
