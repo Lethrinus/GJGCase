@@ -51,6 +51,7 @@
     <Compile Include="Assets\Scripts\ParticlePool.cs" />
     <Compile Include="Assets\Scripts\BoardSetupUI.cs" />
     <Compile Include="Assets\Scripts\GoalMoveUI.cs" />
+    <Compile Include="Assets\Scripts\LevelTracker.cs" />
     <Compile Include="Assets\Scripts\CrateBehaviour.cs" />
     <Compile Include="Assets\Scripts\BoardConfig.cs" />
     <Compile Include="Assets\Scripts\ColorPalette.cs" />

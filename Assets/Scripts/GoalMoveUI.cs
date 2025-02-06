@@ -1,7 +1,5 @@
 using UnityEngine;
 using TMPro;
-using UnityEngine.UI;
-
 public class GoalMoveUI : MonoBehaviour
 {
     [Header("Crate UI")]

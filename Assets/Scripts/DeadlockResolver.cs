@@ -35,9 +35,10 @@ public class DeadlockResolver : MonoBehaviour
         return true;
     }
 
-  public void ResolveDeadlockFullRefill(BoardData data, Transform parent, float fadeDuration, int thresholdA, int thresholdB, int thresholdC, Action onComplete, HashSet<int> reservedIndices = null) {
-      Sequence fadeOutSeq = DOTween.Sequence(); 
-      List<SpriteRenderer> spriteList = new List<SpriteRenderer>();
+    public void ResolveDeadlockFullRefill(BoardData data, Transform parent, float fadeDuration, int thresholdA, int thresholdB, int thresholdC, Action onComplete, HashSet<int> reservedIndices = null)
+    {
+        Sequence fadeOutSeq = DOTween.Sequence(); 
+        List<SpriteRenderer> spriteList = new List<SpriteRenderer>();
         for (int i = 0; i < data.blockGrid.Length; i++)
         {
             var block = data.blockGrid[i];
@@ -48,19 +49,17 @@ public class DeadlockResolver : MonoBehaviour
         {
             fadeOutSeq.Join(sr.DOFade(0f, fadeDuration));
         }
-    
+
         fadeOutSeq.OnComplete(() =>
         {
-       
             List<int> validIndices = new List<int>();
             List<int> colorIDs = new List<int>();
-        
+
             for (int i = 0; i < data.blockGrid.Length; i++)
             {
                 int row = i / data.columns;
                 int col = i % data.columns;
-            
-           
+
                 if (data.IsValidCell(row, col) && (reservedIndices == null || !reservedIndices.Contains(i)))
                 {
                     validIndices.Add(i);
@@ -71,32 +70,53 @@ public class DeadlockResolver : MonoBehaviour
                     }
                 }
             }
-        
-        
             for (int i = 0; i < data.blockGrid.Length; i++)
             {
                 var oldBlock = data.blockGrid[i];
                 if (oldBlock != null)
                 {
-                
                     blockPool.ReturnBlock(oldBlock, oldBlock.prefabIndex);
                     data.blockGrid[i] = null;
                 }
             }
-        
-        
+
             Shuffle(colorIDs);
-        
+            
+            if (!HasAtLeastOneMatch(validIndices, colorIDs, data))
+            {
+                int randomCell = validIndices[UnityEngine.Random.Range(0, validIndices.Count)];
+                int row = randomCell / data.columns;
+                int col = randomCell % data.columns;
+                
+                List<int> neighbors = new List<int>();
+                int up = data.GetIndex(row - 1, col);
+                int down = data.GetIndex(row + 1, col);
+                int left = data.GetIndex(row, col - 1);
+                int right = data.GetIndex(row, col + 1);
+
+                if (row > 0 && validIndices.Contains(up)) neighbors.Add(up);
+                if (row < data.rows - 1 && validIndices.Contains(down)) neighbors.Add(down);
+                if (col > 0 && validIndices.Contains(left)) neighbors.Add(left);
+                if (col < data.columns - 1 && validIndices.Contains(right)) neighbors.Add(right);
+
+                if (neighbors.Count > 0)
+                {
+                    int forcedNeighbor = neighbors[UnityEngine.Random.Range(0, neighbors.Count)];
+                    int idxRandom = validIndices.IndexOf(randomCell);
+                    int idxNeighbor = validIndices.IndexOf(forcedNeighbor);
+                    colorIDs[idxNeighbor] = colorIDs[idxRandom];
+                }
+            }
+            
             for (int j = 0; j < validIndices.Count; j++)
             {
                 int i = validIndices[j];
                 int row = i / data.columns;
                 int col = i % data.columns;
                 Vector2 pos = data.GetBlockPosition(row, col);
-            
-          
+
                 int colorId = (j < colorIDs.Count) ? colorIDs[j] : UnityEngine.Random.Range(0, blockPool.blockPrefabs.Length);
-            
+
                 var newBlock = blockPool.GetBlock(colorId, pos, parent);
                 data.blockGrid[i] = newBlock;
                 newBlock.prefabIndex = colorId;
@@ -106,7 +126,7 @@ public class DeadlockResolver : MonoBehaviour
                 newBlock.thresholdC = thresholdC;
                 newBlock.ResetBlock();
                 newBlock.SetSortingOrder(row);
-            
+
                 if (newBlock.SpriteRenderer != null)
                 {
                     Color c = newBlock.SpriteRenderer.color;
@@ -114,8 +134,7 @@ public class DeadlockResolver : MonoBehaviour
                     newBlock.SpriteRenderer.color = c;
                 }
             }
-        
-      
+
             Sequence fadeInSeq = DOTween.Sequence();
             foreach (int i in validIndices)
             {
@@ -125,10 +144,10 @@ public class DeadlockResolver : MonoBehaviour
                     fadeInSeq.Join(block.SpriteRenderer.DOFade(1f, fadeDuration));
                 }
             }
-        
+
             fadeInSeq.OnComplete(() => { onComplete?.Invoke(); });
         });
-}
+    }
 
     void Shuffle<T>(List<T> list)
     {
@@ -137,6 +156,36 @@ public class DeadlockResolver : MonoBehaviour
             int r = UnityEngine.Random.Range(0, i + 1);
             (list[i], list[r]) = (list[r], list[i]);
         }
+    }
+
+    private bool HasAtLeastOneMatch(List<int> validIndices, List<int> colors, BoardData data)
+    {
+        Dictionary<int, int> mapping = new Dictionary<int, int>();
+        for (int i = 0; i < validIndices.Count; i++)
+        {
+            mapping[validIndices[i]] = colors[i];
+        }
+        foreach (int cellIndex in validIndices)
+        {
+            int color = mapping[cellIndex];
+            int row = cellIndex / data.columns;
+            int col = cellIndex % data.columns;
+
+            List<int> neighbors = new List<int>();
+            if (row > 0) neighbors.Add(data.GetIndex(row - 1, col));
+            if (row < data.rows - 1) neighbors.Add(data.GetIndex(row + 1, col));
+            if (col > 0) neighbors.Add(data.GetIndex(row, col - 1));
+            if (col < data.columns - 1) neighbors.Add(data.GetIndex(row, col + 1));
+
+            foreach (int nb in neighbors)
+            {
+                if (mapping.ContainsKey(nb) && mapping[nb] == color)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     IEnumerable<int> GetNeighbors(BoardData data, int index)

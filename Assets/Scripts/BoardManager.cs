@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using DG.Tweening;
+using UnityEngine.SceneManagement;
 
 public class BoardManager : MonoBehaviour
 {
@@ -14,21 +15,17 @@ public class BoardManager : MonoBehaviour
     public ColorPalette colorPalette;
     public ParticlePool particlePool;
     public Transform environmentParent;
-
     public InputHandler inputHandler;
     public CrateBehavior cratePrefab;
-
-    // Dictionary tracking cells reserved for crates
+    
     private readonly Dictionary<int, CrateBehavior> _crateGrid = new();
     
-    // Gameplay counters
     private int _movesLeft;
     private int _blocksDestroyed;
     private int _targetBlocksDestroyed; 
     private int _targetCratesDestroyed; 
     private bool _isReady;
     
-    //DOTween setup
     [SerializeField] private int tweenersCapacity = 500;
     [SerializeField] private int sequencesCapacity = 200;
     
@@ -115,7 +112,43 @@ public class BoardManager : MonoBehaviour
     public int GetTargetBlocksDestroyed() { return _targetBlocksDestroyed; }
     public int GetTargetCratesDestroyed() { return _targetCratesDestroyed; }
     
-
+    private void CheckAndLoadNextLevel()
+    {
+        if (!boardConfig.useCrates)
+        {
+            int remaining = Mathf.Max(0, boardConfig.targetBlockGoal - _targetBlocksDestroyed);
+            if (remaining <= 0)
+            {
+                LoadNextLevel();
+                return;
+            }
+        }
+        else
+        {
+            int remaining = Mathf.Max(0, boardConfig.targetCrateGoal - _targetCratesDestroyed);
+            if (remaining <= 0)
+            {
+                LoadNextLevel();
+                return;
+            }
+        }
+        _isReady = true;
+    }
+    private void LoadNextLevel()
+    {
+        if (LevelTracker.currentLevelIndex < 2)
+        {
+            int nextLevel = LevelTracker.currentLevelIndex + 1;
+            LevelTracker.currentLevelIndex = nextLevel;
+            LevelTracker.selectedConfig = LevelTracker.levels[nextLevel];
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
+        else
+        {
+            _isReady = true;
+        }
+    }
+   
     private void OnBlockClicked(BlockBehavior clicked)
     {
         if (!_isReady || clicked == null)
@@ -156,14 +189,14 @@ public class BoardManager : MonoBehaviour
                 {
                     _movesLeft--;
                     _blocksDestroyed += group.Count;
-                    UpdateBoardSequence(() => { _isReady = true; });
+                    UpdateBoardSequence(() => { CheckAndLoadNextLevel(); });
                 });
             }
             else
             {
                 _movesLeft--;
                 _blocksDestroyed += group.Count;
-                UpdateBoardSequence(() => { _isReady = true; });
+                UpdateBoardSequence(() => { CheckAndLoadNextLevel(); });
             }
         };
 

@@ -19,7 +19,7 @@ MonoBehaviour:
   thresholdB: 6
   thresholdC: 8
   shuffleFadeDuration: 0.6
-  initialMoves: 50
+  initialMoves: 80
   targetBlockGoal: 30
   crateIcon: {fileID: 0}
   targetIcon: {fileID: -7364823422338184377, guid: e67a3679d1e53db428ebaa0e9fb9affa, type: 3}
